@@ -1,26 +1,27 @@
-// src/gates/or16_gate.v – Porte OR 16 bits construite avec des or_gate unitaires
+// src/gates/or16_gate.v - OR16 Gate (16-bit Bitwise OR)
+// Part of Nand2Tetris Verilog Implementation
+// Function: 16-bit parallel OR operation using 16 independent 1-bit OR gates
+// Architecture: Bitwise OR - out[i] = a[i] | b[i] for i = 0 to 15
+
 `timescale 1ns / 1ps
 
 module or16_gate (
-    input  wire [15:0] a,
-    input  wire [15:0] b,
-    output wire [15:0] out
+    input  wire [15:0] a,   // 16-bit input A
+    input  wire [15:0] b,   // 16-bit input B
+    output wire [15:0] out  // 16-bit OR result: a | b
 );
-    // OR bit à bit: out[i] = a[i] OR b[i]
-    or_gate or0  (.a(a[0]),  .b(b[0]),  .out(out[0]));
-    or_gate or1  (.a(a[1]),  .b(b[1]),  .out(out[1]));
-    or_gate or2  (.a(a[2]),  .b(b[2]),  .out(out[2]));
-    or_gate or3  (.a(a[3]),  .b(b[3]),  .out(out[3]));
-    or_gate or4  (.a(a[4]),  .b(b[4]),  .out(out[4]));
-    or_gate or5  (.a(a[5]),  .b(b[5]),  .out(out[5]));
-    or_gate or6  (.a(a[6]),  .b(b[6]),  .out(out[6]));
-    or_gate or7  (.a(a[7]),  .b(b[7]),  .out(out[7]));
-    or_gate or8  (.a(a[8]),  .b(b[8]),  .out(out[8]));
-    or_gate or9  (.a(a[9]),  .b(b[9]),  .out(out[9]));
-    or_gate or10 (.a(a[10]), .b(b[10]), .out(out[10]));
-    or_gate or11 (.a(a[11]), .b(b[11]), .out(out[11]));
-    or_gate or12 (.a(a[12]), .b(b[12]), .out(out[12]));
-    or_gate or13 (.a(a[13]), .b(b[13]), .out(out[13]));
-    or_gate or14 (.a(a[14]), .b(b[14]), .out(out[14]));
-    or_gate or15 (.a(a[15]), .b(b[15]), .out(out[15]));
+
+    // 16-bit Parallel OR Implementation
+    // Simple loop replaces 16 repetitive instantiations
+    // Each bit: out[i] = a[i] OR b[i]
+    
+    genvar i;
+    generate
+        for (i = 0; i < 16; i = i + 1) begin
+            or_gate or_inst (.a(a[i]), .b(b[i]), .out(out[i]));
+        end
+    endgenerate
+
+    // All 16 OR operations execute in parallel - single gate delay
+
 endmodule
