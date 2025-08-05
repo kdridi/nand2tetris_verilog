@@ -1,7 +1,7 @@
 // tests/gates/nand_gate_tb.v - Unit Test for NAND Gate
 `timescale 1ns / 1ps
 
-module test_nand;
+module nand_gate_tb;
 
     // Test signals
     reg in_a, in_b;
@@ -36,8 +36,8 @@ module test_nand;
 
     // Test complete truth table
     initial begin
-        $dumpfile("test_nand.vcd");
-        $dumpvars(0, test_nand);
+        $dumpfile("nand_gate_tb.vcd");
+        $dumpvars(0, nand_gate_tb);
 
         $display("NAND Computed Truth Table");
         $display("+-----+-----+-----+-----+");

@@ -1,81 +1,57 @@
-// tests/gates/not16_gate_tb.v - Cycle TDD 2 pour la porte NOT 16-bits
-// Test complet : vérifier plusieurs cas avec différents patterns
-
+// tests/gates/not16_gate_tb.v - Unit Test for NOT16 Gate
 `timescale 1ns / 1ps
 
-module test_not16;
-    // Signaux de test
-    reg [15:0] in;
+module not16_gate_tb;
+
+    // Test signals
+    reg [15:0] in_data;
     wire [15:0] out;
-    
-    // Instance du module à tester
+
+    // Instance of the module to be tested
     not16_gate uut (
-        .in(in),
+        .in(in_data),
         .out(out)
     );
-    
-    // Test complet
+
+    // Task to check the output of the NOT16 gate
+    task not16_check;
+        input [15:0] in_val, out_expected;
+        begin
+            in_data = in_val;
+            #10;
+            $display("| 0x%04X | 0x%04X | 0x%04X |", 
+                     in_data, out_expected, out);
+
+            if (out !== out_expected) begin
+                $display("FAILURE: NOT16(0x%04X) expected 0x%04X, obtained 0x%04X", 
+                         in_data, out_expected, out);
+                $finish;
+            end
+        end
+    endtask
+
+    // Test comprehensive patterns
     initial begin
-        $dumpfile("test_not16.vcd");
-        $dumpvars(0, test_not16);
-        
-        $display("Test complet de la porte NOT 16-bits");
-        $display("=====================================");
-        
-        // Test 1: 0x0000 -> 0xFFFF
-        in = 16'h0000; #10;
-        $display("Test 1: NOT16(0x%04X) = 0x%04X", in, out);
-        if (out !== 16'hFFFF) begin
-            $display("ECHEC: attendu 0xFFFF");
-            $finish;
-        end
-        
-        // Test 2: 0xFFFF -> 0x0000
-        in = 16'hFFFF; #10;
-        $display("Test 2: NOT16(0x%04X) = 0x%04X", in, out);
-        if (out !== 16'h0000) begin
-            $display("ECHEC: attendu 0x0000");
-            $finish;
-        end
-        
-        // Test 3: 0xAAAA -> 0x5555 (pattern alternant)
-        in = 16'hAAAA; #10;
-        $display("Test 3: NOT16(0x%04X) = 0x%04X", in, out);
-        if (out !== 16'h5555) begin
-            $display("ECHEC: attendu 0x5555");
-            $finish;
-        end
-        
-        // Test 4: 0x5555 -> 0xAAAA (pattern alternant inverse)
-        in = 16'h5555; #10;
-        $display("Test 4: NOT16(0x%04X) = 0x%04X", in, out);
-        if (out !== 16'hAAAA) begin
-            $display("ECHEC: attendu 0xAAAA");
-            $finish;
-        end
-        
-        // Test 5: 0x00FF -> 0xFF00 (demi-mot)
-        in = 16'h00FF; #10;
-        $display("Test 5: NOT16(0x%04X) = 0x%04X", in, out);
-        if (out !== 16'hFF00) begin
-            $display("ECHEC: attendu 0xFF00");
-            $finish;
-        end
-        
-        // Test 6: 0x1234 -> 0xEDCB (valeur arbitraire)
-        in = 16'h1234; #10;
-        $display("Test 6: NOT16(0x%04X) = 0x%04X", in, out);
-        if (out !== 16'hEDCB) begin
-            $display("ECHEC: attendu 0xEDCB");
-            $finish;
-        end
-        
+        $dumpfile("not16_gate_tb.vcd");
+        $dumpvars(0, not16_gate_tb);
+
+        $display("NOT16 Gate Comprehensive Test");
+        $display("+--------+--------+--------+");
+        $display("|   IN   |  EXP   |  OUT   |");
+        $display("+--------+--------+--------+");
+        not16_check(16'h0000, 16'hFFFF);
+        not16_check(16'hFFFF, 16'h0000);
+        not16_check(16'hAAAA, 16'h5555);
+        not16_check(16'h5555, 16'hAAAA);
+        not16_check(16'h00FF, 16'hFF00);
+        not16_check(16'h1234, 16'hEDCB);
+        $display("+--------+--------+--------+");
+
         $display("");
-        $display("SUCCES: Tous les tests NOT16 passés !");
-        $display("La porte NOT 16-bits est fonctionnelle.");
-        $display("");
-        $display("🎉 PREMIERE PORTE MULTI-BITS COMPLETEE !");
+
+        $display("SUCCESS: All tests passed!");
+        $display("The NOT16 gate (16-bit NOT operation) is fully functional.");
         $finish;
     end
-    
+
 endmodule

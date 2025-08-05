@@ -1,65 +1,59 @@
-// tests/gates/and_gate_tb.v - Cycle TDD 2 pour la porte AND
-// Test complet : vérifier la table de vérité complète de AND
-
+// tests/gates/and_gate_tb.v - Unit Test for AND Gate
 `timescale 1ns / 1ps
 
-module test_and;
-    // Signaux de test
-    reg a, b;
+module and_gate_tb;
+
+    // Test signals
+    reg in_a, in_b;
     wire out;
-    
-    // Instance du module à tester
+
+    // Instance of the module to be tested
     and_gate uut (
-        .a(a),
-        .b(b),
+        .a(in_a),
+        .b(in_b),
         .out(out)
     );
-    
-    // Test complet de la table de vérité
+
+    // Constants for test values
+    localparam LOGIC_L = 0; // Low logic level
+    localparam LOGIC_H = 1; // High logic level
+
+    // Task to check the output of the AND gate
+    task and_gate_check;
+        input a_val, b_val, out_expected;
+        begin
+            in_a = a_val;
+            in_b = b_val;
+            #10;
+            $display("|  %b  |  %b  |  %b  |  %b  |", in_a, in_b, out_expected, out);
+
+            if (out !== out_expected) begin
+                $display("FAILURE: AND(%b,%b) expected %b, obtained %b", in_a, in_b, out_expected, out);
+                $finish;
+            end
+        end
+    endtask
+
+    // Test complete truth table
     initial begin
-        $dumpfile("test_and.vcd");
-        $dumpvars(0, test_and);
-        
-        $display("Test de la table de vérité AND");
-        $display("a | b | out | attendu");
-        $display("--|---|-----|--------");
-        
-        // Test 1: AND(0,0) = 0
-        a = 0; b = 0; #10;
-        $display("%b | %b |  %b  |   0", a, b, out);
-        if (out !== 1'b0) begin
-            $display("ECHEC: AND(0,0) = %b, attendu 0", out);
-            $finish;
-        end
-        
-        // Test 2: AND(0,1) = 0
-        a = 0; b = 1; #10;
-        $display("%b | %b |  %b  |   0", a, b, out);
-        if (out !== 1'b0) begin
-            $display("ECHEC: AND(0,1) = %b, attendu 0", out);
-            $finish;
-        end
-        
-        // Test 3: AND(1,0) = 0
-        a = 1; b = 0; #10;
-        $display("%b | %b |  %b  |   0", a, b, out);
-        if (out !== 1'b0) begin
-            $display("ECHEC: AND(1,0) = %b, attendu 0", out);
-            $finish;
-        end
-        
-        // Test 4: AND(1,1) = 1
-        a = 1; b = 1; #10;
-        $display("%b | %b |  %b  |   1", a, b, out);
-        if (out !== 1'b1) begin
-            $display("ECHEC: AND(1,1) = %b, attendu 1", out);
-            $finish;
-        end
-        
+        $dumpfile("and_gate_tb.vcd");
+        $dumpvars(0, and_gate_tb);
+
+        $display("AND Computed Truth Table");
+        $display("+-----+-----+-----+-----+");
+        $display("|  a  |  b  | exp | out |");
+        $display("+-----+-----+-----+-----+");
+        and_gate_check(LOGIC_L, LOGIC_L, LOGIC_L);
+        and_gate_check(LOGIC_L, LOGIC_H, LOGIC_L);
+        and_gate_check(LOGIC_H, LOGIC_L, LOGIC_L);
+        and_gate_check(LOGIC_H, LOGIC_H, LOGIC_H);
+        $display("+-----+-----+-----+-----+");
+
         $display("");
-        $display("SUCCES: Tous les tests AND passés !");
-        $display("La porte AND (construite avec NAND+NOT) est fonctionnelle.");
+
+        $display("SUCCESS: All tests passed!");
+        $display("The AND gate (built with NAND+NOT) is fully functional.");
         $finish;
     end
-    
+
 endmodule

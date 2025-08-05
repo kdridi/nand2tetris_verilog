@@ -1,48 +1,55 @@
-// tests/gates/not_gate_tb.v - Cycle TDD 2 pour la porte NOT
-// Test complet : vérifier la table de vérité complète de NOT
-
+// tests/gates/not_gate_tb.v - Unit Test for NOT Gate
 `timescale 1ns / 1ps
 
-module test_not;
-    // Signaux de test
-    reg in;
+module not_gate_tb;
+
+    // Test signals
+    reg in_a;
     wire out;
-    
-    // Instance du module à tester
+
+    // Instance of the module to be tested
     not_gate uut (
-        .in(in),
+        .in(in_a),
         .out(out)
     );
-    
-    // Test complet de la table de vérité
+
+    // Constants for test values
+    localparam LOGIC_L = 0; // Low logic level
+    localparam LOGIC_H = 1; // High logic level
+
+    // Task to check the output of the NOT gate
+    task not_gate_check;
+        input a_val, out_expected;
+        begin
+            in_a = a_val;
+            #10;
+            $display("|  %b  |  %b  |  %b  |", in_a, out_expected, out);
+
+            if (out !== out_expected) begin
+                $display("FAILURE: NOT(%b) expected %b, obtained %b", in_a, out_expected, out);
+                $finish;
+            end
+        end
+    endtask
+
+    // Test complete truth table
     initial begin
-        $dumpfile("test_not.vcd");
-        $dumpvars(0, test_not);
-        
-        $display("Test de la table de vérité NOT");
-        $display("in | out | attendu");
-        $display("---|-----|--------");
-        
-        // Test 1: NOT(0) = 1
-        in = 0; #10;
-        $display(" %b |  %b  |   1", in, out);
-        if (out !== 1'b1) begin
-            $display("ECHEC: NOT(0) = %b, attendu 1", out);
-            $finish;
-        end
-        
-        // Test 2: NOT(1) = 0
-        in = 1; #10;
-        $display(" %b |  %b  |   0", in, out);
-        if (out !== 1'b0) begin
-            $display("ECHEC: NOT(1) = %b, attendu 0", out);
-            $finish;
-        end
-        
+        $dumpfile("not_gate_tb.vcd");
+        $dumpvars(0, not_gate_tb);
+
+        $display("NOT Computed Truth Table");
+        $display("+-----+-----+-----+");
+        $display("| in  | exp | out |");
+        $display("+-----+-----+-----+");
+        not_gate_check(LOGIC_L, LOGIC_H);
+        not_gate_check(LOGIC_H, LOGIC_L);
+        $display("+-----+-----+-----+");
+
         $display("");
-        $display("SUCCES: Tous les tests NOT passés !");
-        $display("La porte NOT (construite avec NAND) est fonctionnelle.");
+
+        $display("SUCCESS: All tests passed!");
+        $display("The NOT gate (built with NAND) is fully functional.");
         $finish;
     end
-    
+
 endmodule

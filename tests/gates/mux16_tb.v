@@ -1,101 +1,70 @@
-// tests/gates/mux16_tb.v - Cycle TDD 2 pour le multiplexeur 16-bits
-// Test complet : vérifier la sélection avec différents patterns
-
+// tests/gates/mux16_tb.v - Unit Test for MUX16 (16-bit 2-to-1 Multiplexer)
 `timescale 1ns / 1ps
 
-module test_mux16;
-    // Signaux de test
-    reg [15:0] a, b;
+module mux16_tb;
+
+    // Test signals
+    reg [15:0] in_a, in_b;
     reg sel;
     wire [15:0] out;
-    
-    // Instance du module à tester
+
+    // Instance of the module to be tested
     mux16 uut (
-        .a(a),
-        .b(b),
+        .a(in_a),
+        .b(in_b),
         .sel(sel),
         .out(out)
     );
-    
-    // Test complet
+
+    // Constants for logic levels only
+    localparam LOGIC_L = 0; // Low logic level
+    localparam LOGIC_H = 1; // High logic level
+
+    // Task to check the output of the MUX16
+    task mux16_check;
+        input [15:0] a_val, b_val;
+        input sel_val;
+        input [15:0] out_expected;
+        begin
+            in_a = a_val;
+            in_b = b_val;
+            sel = sel_val;
+            #10;
+            $display("| 0x%04X | 0x%04X | %b | 0x%04X | 0x%04X |", 
+                     in_a, in_b, sel, out_expected, out);
+
+            if (out !== out_expected) begin
+                $display("FAILURE: MUX16(a=0x%04X,b=0x%04X,sel=%b) expected 0x%04X, obtained 0x%04X", 
+                         in_a, in_b, sel, out_expected, out);
+                $finish;
+            end
+        end
+    endtask
+
+    // Test comprehensive patterns
     initial begin
-        $dumpfile("test_mux16.vcd");
-        $dumpvars(0, test_mux16);
-        
-        $display("Test complet du multiplexeur 16-bits");
-        $display("====================================");
-        
-        // Test 1: sel=0, sélectionne a
-        a = 16'h1234; b = 16'h5678; sel = 0; #10;
-        $display("Test 1: MUX16(a=0x%04X, b=0x%04X, sel=%b) = 0x%04X", a, b, sel, out);
-        if (out !== a) begin
-            $display("ECHEC: attendu a=0x%04X", a);
-            $finish;
-        end
-        
-        // Test 2: sel=1, sélectionne b
-        a = 16'h1234; b = 16'h5678; sel = 1; #10;
-        $display("Test 2: MUX16(a=0x%04X, b=0x%04X, sel=%b) = 0x%04X", a, b, sel, out);
-        if (out !== b) begin
-            $display("ECHEC: attendu b=0x%04X", b);
-            $finish;
-        end
-        
-        // Test 3: sel=0, avec 0x0000 et 0xFFFF
-        a = 16'h0000; b = 16'hFFFF; sel = 0; #10;
-        $display("Test 3: MUX16(a=0x%04X, b=0x%04X, sel=%b) = 0x%04X", a, b, sel, out);
-        if (out !== a) begin
-            $display("ECHEC: attendu a=0x%04X", a);
-            $finish;
-        end
-        
-        // Test 4: sel=1, avec 0x0000 et 0xFFFF
-        a = 16'h0000; b = 16'hFFFF; sel = 1; #10;
-        $display("Test 4: MUX16(a=0x%04X, b=0x%04X, sel=%b) = 0x%04X", a, b, sel, out);
-        if (out !== b) begin
-            $display("ECHEC: attendu b=0x%04X", b);
-            $finish;
-        end
-        
-        // Test 5: sel=0, patterns alternants
-        a = 16'hAAAA; b = 16'h5555; sel = 0; #10;
-        $display("Test 5: MUX16(a=0x%04X, b=0x%04X, sel=%b) = 0x%04X", a, b, sel, out);
-        if (out !== a) begin
-            $display("ECHEC: attendu a=0x%04X", a);
-            $finish;
-        end
-        
-        // Test 6: sel=1, patterns alternants
-        a = 16'hAAAA; b = 16'h5555; sel = 1; #10;
-        $display("Test 6: MUX16(a=0x%04X, b=0x%04X, sel=%b) = 0x%04X", a, b, sel, out);
-        if (out !== b) begin
-            $display("ECHEC: attendu b=0x%04X", b);
-            $finish;
-        end
-        
-        // Test 7: sel=0, avec masques
-        a = 16'hFF00; b = 16'h00FF; sel = 0; #10;
-        $display("Test 7: MUX16(a=0x%04X, b=0x%04X, sel=%b) = 0x%04X", a, b, sel, out);
-        if (out !== a) begin
-            $display("ECHEC: attendu a=0x%04X", a);
-            $finish;
-        end
-        
-        // Test 8: sel=1, avec masques
-        a = 16'hFF00; b = 16'h00FF; sel = 1; #10;
-        $display("Test 8: MUX16(a=0x%04X, b=0x%04X, sel=%b) = 0x%04X", a, b, sel, out);
-        if (out !== b) begin
-            $display("ECHEC: attendu b=0x%04X", b);
-            $finish;
-        end
-        
+        $dumpfile("mux16_tb.vcd");
+        $dumpvars(0, mux16_tb);
+
+        $display("MUX16 (16-bit 2-to-1) Comprehensive Test");
+        $display("+--------+--------+---+--------+--------+");
+        $display("|   A    |   B    |SEL|  EXP   |  OUT   |");
+        $display("+--------+--------+---+--------+--------+");
+        mux16_check(16'h1234, 16'h5678, LOGIC_L, 16'h1234); // sel=0 -> a
+        mux16_check(16'h1234, 16'h5678, LOGIC_H, 16'h5678); // sel=1 -> b
+        mux16_check(16'h0000, 16'hFFFF, LOGIC_L, 16'h0000); // sel=0 -> a
+        mux16_check(16'h0000, 16'hFFFF, LOGIC_H, 16'hFFFF); // sel=1 -> b
+        mux16_check(16'hAAAA, 16'h5555, LOGIC_L, 16'hAAAA); // sel=0 -> a
+        mux16_check(16'hAAAA, 16'h5555, LOGIC_H, 16'h5555); // sel=1 -> b
+        mux16_check(16'hFF00, 16'h00FF, LOGIC_L, 16'hFF00); // sel=0 -> a
+        mux16_check(16'hFF00, 16'h00FF, LOGIC_H, 16'h00FF); // sel=1 -> b
+        $display("+--------+--------+---+--------+--------+");
+
         $display("");
-        $display("SUCCES: Tous les tests MUX16 passés !");
-        $display("Le multiplexeur 16-bits est fonctionnel.");
-        $display("");
-        $display("🎉 MULTIPLEXEUR 16-BITS COMPLETE !");
-        $display("Nous approchons des circuits arithmétiques !");
+        
+        $display("SUCCESS: All tests passed!");
+        $display("The MUX16 (16-bit 2-to-1 Multiplexer) is fully functional.");
         $finish;
     end
-    
+
 endmodule

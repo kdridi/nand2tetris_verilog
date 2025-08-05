@@ -1,96 +1,61 @@
-// tests/gates/and16_gate_tb.v - Cycle TDD 2 pour la porte AND 16-bits
-// Test complet : vérifier plusieurs cas avec différents patterns
-
+// tests/gates/and16_gate_tb.v - Unit Test for AND16 Gate
 `timescale 1ns / 1ps
 
-module test_and16;
-    // Signaux de test
-    reg [15:0] a, b;
+module and16_gate_tb;
+
+    // Test signals
+    reg [15:0] in_a, in_b;
     wire [15:0] out;
-    
-    // Instance du module à tester
+
+    // Instance of the module to be tested
     and16_gate uut (
-        .a(a),
-        .b(b),
+        .a(in_a),
+        .b(in_b),
         .out(out)
     );
     
-    // Test complet
+    // Task to check the output of the AND16 gate
+    task and16_check;
+        input [15:0] a_val, b_val, out_expected;
+        begin
+            in_a = a_val;
+            in_b = b_val;
+            #10;
+            $display("| 0x%04X | 0x%04X | 0x%04X | 0x%04X |", 
+                     in_a, in_b, out_expected, out);
+
+            if (out !== out_expected) begin
+                $display("FAILURE: AND16(0x%04X,0x%04X) expected 0x%04X, obtained 0x%04X", 
+                         in_a, in_b, out_expected, out);
+                $finish;
+            end
+        end
+    endtask
+
+    // Test comprehensive patterns
     initial begin
-        $dumpfile("test_and16.vcd");
-        $dumpvars(0, test_and16);
-        
-        $display("Test complet de la porte AND 16-bits");
-        $display("====================================");
-        
-        // Test 1: 0xFFFF AND 0xFFFF = 0xFFFF
-        a = 16'hFFFF; b = 16'hFFFF; #10;
-        $display("Test 1: AND16(0x%04X, 0x%04X) = 0x%04X", a, b, out);
-        if (out !== 16'hFFFF) begin
-            $display("ECHEC: attendu 0xFFFF");
-            $finish;
-        end
-        
-        // Test 2: 0xFFFF AND 0x0000 = 0x0000
-        a = 16'hFFFF; b = 16'h0000; #10;
-        $display("Test 2: AND16(0x%04X, 0x%04X) = 0x%04X", a, b, out);
-        if (out !== 16'h0000) begin
-            $display("ECHEC: attendu 0x0000");
-            $finish;
-        end
-        
-        // Test 3: 0x0000 AND 0xFFFF = 0x0000
-        a = 16'h0000; b = 16'hFFFF; #10;
-        $display("Test 3: AND16(0x%04X, 0x%04X) = 0x%04X", a, b, out);
-        if (out !== 16'h0000) begin
-            $display("ECHEC: attendu 0x0000");
-            $finish;
-        end
-        
-        // Test 4: 0x0000 AND 0x0000 = 0x0000
-        a = 16'h0000; b = 16'h0000; #10;
-        $display("Test 4: AND16(0x%04X, 0x%04X) = 0x%04X", a, b, out);
-        if (out !== 16'h0000) begin
-            $display("ECHEC: attendu 0x0000");
-            $finish;
-        end
-        
-        // Test 5: 0xAAAA AND 0x5555 = 0x0000 (patterns alternants)
-        a = 16'hAAAA; b = 16'h5555; #10;
-        $display("Test 5: AND16(0x%04X, 0x%04X) = 0x%04X", a, b, out);
-        if (out !== 16'h0000) begin
-            $display("ECHEC: attendu 0x0000");
-            $finish;
-        end
-        
-        // Test 6: 0xAAAA AND 0xAAAA = 0xAAAA
-        a = 16'hAAAA; b = 16'hAAAA; #10;
-        $display("Test 6: AND16(0x%04X, 0x%04X) = 0x%04X", a, b, out);
-        if (out !== 16'hAAAA) begin
-            $display("ECHEC: attendu 0xAAAA");
-            $finish;
-        end
-        
-        // Test 7: 0x1234 AND 0x5678 = 0x1230
-        a = 16'h1234; b = 16'h5678; #10;
-        $display("Test 7: AND16(0x%04X, 0x%04X) = 0x%04X", a, b, out);
-        if (out !== 16'h1230) begin
-            $display("ECHEC: attendu 0x1230");
-            $finish;
-        end
-        
-        // Test 8: 0xFF00 AND 0x00FF = 0x0000 (masques complémentaires)
-        a = 16'hFF00; b = 16'h00FF; #10;
-        $display("Test 8: AND16(0x%04X, 0x%04X) = 0x%04X", a, b, out);
-        if (out !== 16'h0000) begin
-            $display("ECHEC: attendu 0x0000");
-            $finish;
-        end
-        
+        $dumpfile("and16_gate_tb.vcd");
+        $dumpvars(0, and16_gate_tb);
+
+        $display("AND16 Gate Comprehensive Test");
+        $display("+--------+--------+--------+--------+");
+        $display("|   A    |   B    |  EXP   |  OUT   |");
+        $display("+--------+--------+--------+--------+");
+        and16_check(16'hFFFF, 16'hFFFF, 16'hFFFF);
+        and16_check(16'hFFFF, 16'h0000, 16'h0000);
+        and16_check(16'h0000, 16'hFFFF, 16'h0000);
+        and16_check(16'h0000, 16'h0000, 16'h0000);
+        and16_check(16'hAAAA, 16'h5555, 16'h0000);
+        and16_check(16'hAAAA, 16'hAAAA, 16'hAAAA);
+        and16_check(16'h1234, 16'h5678, 16'h1230);
+        and16_check(16'hFF00, 16'h00FF, 16'h0000);
+        $display("+--------+--------+--------+--------+");
+
         $display("");
-        $display("SUCCES: Tous les tests AND16 passés !");
-        $display("La porte AND 16-bits est fonctionnelle.");
+        
+        $display("SUCCESS: All tests passed!");
+        $display("The AND16 gate (16-bit AND operation) is fully functional.");
         $finish;
     end
-    
+
 endmodule

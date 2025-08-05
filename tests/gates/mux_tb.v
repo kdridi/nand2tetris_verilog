@@ -1,98 +1,66 @@
-// tests/gates/mux_tb.v - Cycle TDD 2 pour le multiplexeur 2-vers-1
-// Test complet : vérifier tous les cas du multiplexeur
-
+// tests/gates/mux_tb.v - Unit Test for MUX (2-to-1 Multiplexer)
 `timescale 1ns / 1ps
 
-module test_mux;
-    // Signaux de test
-    reg a, b, sel;
+module mux_tb;
+
+    // Test signals
+    reg in_a, in_b, sel;
     wire out;
-    
-    // Instance du module à tester
+
+    // Instance of the module to be tested
     mux uut (
-        .a(a),
-        .b(b),
+        .a(in_a),
+        .b(in_b),
         .sel(sel),
         .out(out)
     );
-    
-    // Test complet
+
+    // Constants for test values
+    localparam LOGIC_L = 0; // Low logic level
+    localparam LOGIC_H = 1; // High logic level
+
+    // Task to check the output of the MUX
+    task mux_check;
+        input a_val, b_val, sel_val, out_expected;
+        begin
+            in_a = a_val;
+            in_b = b_val;
+            sel = sel_val;
+            #10;
+            $display("|  %b  |  %b  |  %b  |  %b  |  %b  |", in_a, in_b, sel, out_expected, out);
+
+            if (out !== out_expected) begin
+                $display("FAILURE: MUX(a=%b,b=%b,sel=%b) expected %b, obtained %b", 
+                         in_a, in_b, sel, out_expected, out);
+                $finish;
+            end
+        end
+    endtask
+
+    // Test complete truth table
     initial begin
-        $dumpfile("test_mux.vcd");
-        $dumpvars(0, test_mux);
-        
-        $display("Test complet du multiplexeur 2-vers-1");
-        $display("a | b | sel | out | attendu (sel=0→a, sel=1→b)");
-        $display("--|---|-----|-----|-------------------------");
-        
-        // Test 1: sel=0, a=0, b=0 -> out=a=0
-        a = 0; b = 0; sel = 0; #10;
-        $display("%b | %b |  %b  |  %b  | %b (sélectionne a)", a, b, sel, out, a);
-        if (out !== a) begin
-            $display("ECHEC: MUX(a=%b, b=%b, sel=0) = %b, attendu %b", a, b, out, a);
-            $finish;
-        end
-        
-        // Test 2: sel=0, a=1, b=0 -> out=a=1
-        a = 1; b = 0; sel = 0; #10;
-        $display("%b | %b |  %b  |  %b  | %b (sélectionne a)", a, b, sel, out, a);
-        if (out !== a) begin
-            $display("ECHEC: MUX(a=%b, b=%b, sel=0) = %b, attendu %b", a, b, out, a);
-            $finish;
-        end
-        
-        // Test 3: sel=0, a=0, b=1 -> out=a=0
-        a = 0; b = 1; sel = 0; #10;
-        $display("%b | %b |  %b  |  %b  | %b (sélectionne a)", a, b, sel, out, a);
-        if (out !== a) begin
-            $display("ECHEC: MUX(a=%b, b=%b, sel=0) = %b, attendu %b", a, b, out, a);
-            $finish;
-        end
-        
-        // Test 4: sel=0, a=1, b=1 -> out=a=1
-        a = 1; b = 1; sel = 0; #10;
-        $display("%b | %b |  %b  |  %b  | %b (sélectionne a)", a, b, sel, out, a);
-        if (out !== a) begin
-            $display("ECHEC: MUX(a=%b, b=%b, sel=0) = %b, attendu %b", a, b, out, a);
-            $finish;
-        end
-        
-        // Test 5: sel=1, a=0, b=0 -> out=b=0
-        a = 0; b = 0; sel = 1; #10;
-        $display("%b | %b |  %b  |  %b  | %b (sélectionne b)", a, b, sel, out, b);
-        if (out !== b) begin
-            $display("ECHEC: MUX(a=%b, b=%b, sel=1) = %b, attendu %b", a, b, out, b);
-            $finish;
-        end
-        
-        // Test 6: sel=1, a=1, b=0 -> out=b=0
-        a = 1; b = 0; sel = 1; #10;
-        $display("%b | %b |  %b  |  %b  | %b (sélectionne b)", a, b, sel, out, b);
-        if (out !== b) begin
-            $display("ECHEC: MUX(a=%b, b=%b, sel=1) = %b, attendu %b", a, b, out, b);
-            $finish;
-        end
-        
-        // Test 7: sel=1, a=0, b=1 -> out=b=1
-        a = 0; b = 1; sel = 1; #10;
-        $display("%b | %b |  %b  |  %b  | %b (sélectionne b)", a, b, sel, out, b);
-        if (out !== b) begin
-            $display("ECHEC: MUX(a=%b, b=%b, sel=1) = %b, attendu %b", a, b, out, b);
-            $finish;
-        end
-        
-        // Test 8: sel=1, a=1, b=1 -> out=b=1
-        a = 1; b = 1; sel = 1; #10;
-        $display("%b | %b |  %b  |  %b  | %b (sélectionne b)", a, b, sel, out, b);
-        if (out !== b) begin
-            $display("ECHEC: MUX(a=%b, b=%b, sel=1) = %b, attendu %b", a, b, out, b);
-            $finish;
-        end
-        
+        $dumpfile("mux_tb.vcd");
+        $dumpvars(0, mux_tb);
+
+        $display("MUX (2-to-1) Computed Truth Table");
+        $display("+-----+-----+-----+-----+-----+");
+        $display("|  a  |  b  | sel | exp | out |");
+        $display("+-----+-----+-----+-----+-----+");
+        mux_check(LOGIC_L, LOGIC_L, LOGIC_L, LOGIC_L); // sel=0 -> a=0
+        mux_check(LOGIC_H, LOGIC_L, LOGIC_L, LOGIC_H); // sel=0 -> a=1
+        mux_check(LOGIC_L, LOGIC_H, LOGIC_L, LOGIC_L); // sel=0 -> a=0
+        mux_check(LOGIC_H, LOGIC_H, LOGIC_L, LOGIC_H); // sel=0 -> a=1
+        mux_check(LOGIC_L, LOGIC_L, LOGIC_H, LOGIC_L); // sel=1 -> b=0
+        mux_check(LOGIC_H, LOGIC_L, LOGIC_H, LOGIC_L); // sel=1 -> b=0
+        mux_check(LOGIC_L, LOGIC_H, LOGIC_H, LOGIC_H); // sel=1 -> b=1
+        mux_check(LOGIC_H, LOGIC_H, LOGIC_H, LOGIC_H); // sel=1 -> b=1
+        $display("+-----+-----+-----+-----+-----+");
+
         $display("");
-        $display("SUCCES: Tous les tests MUX 2-vers-1 passés !");
-        $display("Le multiplexeur est fonctionnel.");
+
+        $display("SUCCESS: All tests passed!");
+        $display("The MUX (2-to-1 Multiplexer) is fully functional.");
         $finish;
     end
-    
+
 endmodule

@@ -1,72 +1,62 @@
-// tests/gates/dmux_tb.v - Cycle TDD 2 pour le démultiplexeur 1-vers-2
-// Test complet : vérifier tous les cas du démultiplexeur
-
+// tests/gates/dmux_tb.v - Unit Test for DMUX (1-to-2 Demultiplexer)
 `timescale 1ns / 1ps
 
-module test_dmux;
-    // Signaux de test
-    reg in, sel;
-    wire a, b;
-    
-    // Instance du module à tester
+module dmux_tb;
+
+    // Test signals
+    reg in_data, sel;
+    wire out_a, out_b;
+
+    // Instance of the module to be tested
     dmux uut (
-        .in(in),
+        .in(in_data),
         .sel(sel),
-        .a(a),
-        .b(b)
+        .a(out_a),
+        .b(out_b)
     );
-    
-    // Test complet
+
+    // Constants for test values
+    localparam LOGIC_L = 0; // Low logic level
+    localparam LOGIC_H = 1; // High logic level
+
+    // Task to check the output of the DMUX
+    task dmux_check;
+        input data_val, sel_val;
+        input exp_a, exp_b;
+        begin
+            in_data = data_val;
+            sel = sel_val;
+            #10;
+            $display("|  %b  |  %b  |  %b  |  %b  |  %b  |  %b  |", in_data, sel, exp_a, exp_b, out_a, out_b);
+
+            if (out_a !== exp_a || out_b !== exp_b) begin
+                $display("FAILURE: DMUX(in=%b,sel=%b) expected (a=%b,b=%b), obtained (a=%b,b=%b)", 
+                         in_data, sel, exp_a, exp_b, out_a, out_b);
+                $finish;
+            end
+        end
+    endtask
+
+    // Test complete truth table
     initial begin
-        $dumpfile("test_dmux.vcd");
-        $dumpvars(0, test_dmux);
-        
-        $display("Test complet du démultiplexeur 1-vers-2");
-        $display("in | sel | a | b | attendu (sel=0→a=in,b=0 / sel=1→a=0,b=in)");
-        $display("---|-----|---|---|---------------------------------------");
-        
-        // Test 1: in=0, sel=0 -> a=0, b=0
-        in = 0; sel = 0; #10;
-        $display(" %b |  %b  | %b | %b | a=%b, b=%b (sel=0, dirige vers a)", in, sel, a, b, in, 1'b0);
-        if (a !== 1'b0 || b !== 1'b0) begin
-            $display("ECHEC: DMUX(in=0, sel=0) -> a=%b, b=%b, attendu a=0, b=0", a, b);
-            $finish;
-        end
-        
-        // Test 2: in=1, sel=0 -> a=1, b=0
-        in = 1; sel = 0; #10;
-        $display(" %b |  %b  | %b | %b | a=%b, b=%b (sel=0, dirige vers a)", in, sel, a, b, in, 1'b0);
-        if (a !== 1'b1 || b !== 1'b0) begin
-            $display("ECHEC: DMUX(in=1, sel=0) -> a=%b, b=%b, attendu a=1, b=0", a, b);
-            $finish;
-        end
-        
-        // Test 3: in=0, sel=1 -> a=0, b=0
-        in = 0; sel = 1; #10;
-        $display(" %b |  %b  | %b | %b | a=%b, b=%b (sel=1, dirige vers b)", in, sel, a, b, 1'b0, in);
-        if (a !== 1'b0 || b !== 1'b0) begin
-            $display("ECHEC: DMUX(in=0, sel=1) -> a=%b, b=%b, attendu a=0, b=0", a, b);
-            $finish;
-        end
-        
-        // Test 4: in=1, sel=1 -> a=0, b=1
-        in = 1; sel = 1; #10;
-        $display(" %b |  %b  | %b | %b | a=%b, b=%b (sel=1, dirige vers b)", in, sel, a, b, 1'b0, in);
-        if (a !== 1'b0 || b !== 1'b1) begin
-            $display("ECHEC: DMUX(in=1, sel=1) -> a=%b, b=%b, attendu a=0, b=1", a, b);
-            $finish;
-        end
-        
+        $dumpfile("dmux_tb.vcd");
+        $dumpvars(0, dmux_tb);
+
+        $display("DMUX (1-to-2) Computed Truth Table");
+        $display("+-----+-----+-----+-----+-----+-----+");
+        $display("| inp | sel | a_e | b_e |  a  |  b  |");
+        $display("+-----+-----+-----+-----+-----+-----+");
+        dmux_check(LOGIC_L, LOGIC_L, LOGIC_L, LOGIC_L); // in=0,sel=0 -> a=0,b=0
+        dmux_check(LOGIC_H, LOGIC_L, LOGIC_H, LOGIC_L); // in=1,sel=0 -> a=1,b=0 (route to a)
+        dmux_check(LOGIC_L, LOGIC_H, LOGIC_L, LOGIC_L); // in=0,sel=1 -> a=0,b=0  
+        dmux_check(LOGIC_H, LOGIC_H, LOGIC_L, LOGIC_H); // in=1,sel=1 -> a=0,b=1 (route to b)
+        $display("+-----+-----+-----+-----+-----+-----+");
+
         $display("");
-        $display("SUCCES: Tous les tests DMUX 1-vers-2 passés !");
-        $display("Le démultiplexeur est fonctionnel.");
-        $display("");
-        $display("🎉 CIRCUITS COMBINATOIRES DE BASE COMPLETES !");
-        $display("Nous avons maintenant :");
-        $display("  - Toutes les portes logiques (NAND, NOT, AND, OR, XOR)");
-        $display("  - Multiplexeur 2-vers-1 (Mux)");
-        $display("  - Démultiplexeur 1-vers-2 (Dmux)");
+
+        $display("SUCCESS: All tests passed!");
+        $display("The DMUX (1-to-2 Demultiplexer) is fully functional.");
         $finish;
     end
-    
+
 endmodule

@@ -1,73 +1,59 @@
-// tests/gates/xor_gate_tb.v - Cycle TDD 2 pour la porte XOR
-// Test complet : vérifier la table de vérité complète de XOR
-
+// tests/gates/xor_gate_tb.v - Unit Test for XOR Gate
 `timescale 1ns / 1ps
 
-module test_xor;
-    // Signaux de test
-    reg a, b;
+module xor_gate_tb;
+
+    // Test signals
+    reg in_a, in_b;
     wire out;
-    
-    // Instance du module à tester
+
+    // Instance of the module to be tested
     xor_gate uut (
-        .a(a),
-        .b(b),
+        .a(in_a),
+        .b(in_b),
         .out(out)
     );
-    
-    // Test complet de la table de vérité
+
+    // Constants for test values
+    localparam LOGIC_L = 0; // Low logic level
+    localparam LOGIC_H = 1; // High logic level
+
+    // Task to check the output of the XOR gate
+    task xor_gate_check;
+        input a_val, b_val, out_expected;
+        begin
+            in_a = a_val;
+            in_b = b_val;
+            #10;
+            $display("|  %b  |  %b  |  %b  |  %b  |", in_a, in_b, out_expected, out);
+
+            if (out !== out_expected) begin
+                $display("FAILURE: XOR(%b,%b) expected %b, obtained %b", in_a, in_b, out_expected, out);
+                $finish;
+            end
+        end
+    endtask
+
+    // Test complete truth table
     initial begin
-        $dumpfile("test_xor.vcd");
-        $dumpvars(0, test_xor);
-        
-        $display("Test de la table de vérité XOR");
-        $display("a | b | out | attendu");
-        $display("--|---|-----|--------");
-        
-        // Test 1: XOR(0,0) = 0
-        a = 0; b = 0; #10;
-        $display("%b | %b |  %b  |   0", a, b, out);
-        if (out !== 1'b0) begin
-            $display("ECHEC: XOR(0,0) = %b, attendu 0", out);
-            $finish;
-        end
-        
-        // Test 2: XOR(0,1) = 1
-        a = 0; b = 1; #10;
-        $display("%b | %b |  %b  |   1", a, b, out);
-        if (out !== 1'b1) begin
-            $display("ECHEC: XOR(0,1) = %b, attendu 1", out);
-            $finish;
-        end
-        
-        // Test 3: XOR(1,0) = 1
-        a = 1; b = 0; #10;
-        $display("%b | %b |  %b  |   1", a, b, out);
-        if (out !== 1'b1) begin
-            $display("ECHEC: XOR(1,0) = %b, attendu 1", out);
-            $finish;
-        end
-        
-        // Test 4: XOR(1,1) = 0
-        a = 1; b = 1; #10;
-        $display("%b | %b |  %b  |   0", a, b, out);
-        if (out !== 1'b0) begin
-            $display("ECHEC: XOR(1,1) = %b, attendu 0", out);
-            $finish;
-        end
-        
+        $dumpfile("xor_gate_tb.vcd");
+        $dumpvars(0, xor_gate_tb);
+
+        $display("XOR Computed Truth Table");
+        $display("+-----+-----+-----+-----+");
+        $display("|  a  |  b  | exp | out |");
+        $display("+-----+-----+-----+-----+");
+        xor_gate_check(LOGIC_L, LOGIC_L, LOGIC_L);
+        xor_gate_check(LOGIC_L, LOGIC_H, LOGIC_H);
+        xor_gate_check(LOGIC_H, LOGIC_L, LOGIC_H);
+        xor_gate_check(LOGIC_H, LOGIC_H, LOGIC_L);
+        $display("+-----+-----+-----+-----+");
+
         $display("");
-        $display("SUCCES: Tous les tests XOR passés !");
-        $display("La porte XOR (construite avec AND+OR+NOT) est fonctionnelle.");
-        $display("");
-        $display("🎉 ETAPE MAJEURE COMPLETEE !");
-        $display("Toutes les portes logiques de base sont implémentées :");
-        $display("  - NAND (primitive)");
-        $display("  - NOT  (à partir de NAND)");
-        $display("  - AND  (à partir de NAND+NOT)");
-        $display("  - OR   (à partir de NAND+NOT)");
-        $display("  - XOR  (à partir de AND+OR+NOT)");
+
+        $display("SUCCESS: All tests passed!");
+        $display("The XOR gate (built with AND+OR+NOT) is fully functional.");
         $finish;
     end
-    
+
 endmodule
