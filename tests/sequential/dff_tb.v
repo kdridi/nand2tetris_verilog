@@ -3,7 +3,7 @@
 
 `timescale 1ns / 1ps
 
-module test_dff;
+module dff_tb;
     // Signaux de test
     reg d, clk;
     wire q;
@@ -23,8 +23,8 @@ module test_dff;
     
     // Test complet
     initial begin
-        $dumpfile("test_dff.vcd");
-        $dumpvars(0, test_dff);
+        $dumpfile("dff_tb.vcd");
+        $dumpvars(0, dff_tb);
         
         $display("Test complet du D Flip-Flop");
         $display("===========================");

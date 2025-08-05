@@ -3,7 +3,7 @@
 
 `timescale 1ns / 1ps
 
-module test_pc;
+module program_counter_tb;
     // Signaux de test
     reg [15:0] in;
     reg load, inc, reset, clk;
@@ -27,8 +27,8 @@ module test_pc;
     
     // Test complet
     initial begin
-        $dumpfile("test_pc.vcd");
-        $dumpvars(0, test_pc);
+        $dumpfile("program_counter_tb.vcd");
+        $dumpvars(0, program_counter_tb);
         
         $display("Test complet du Program Counter");
         $display("================================");

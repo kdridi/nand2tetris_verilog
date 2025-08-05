@@ -3,7 +3,7 @@
 
 `timescale 1ns / 1ps
 
-module test_cpu;
+module cpu_tb;
     // Signaux de test
     reg clk, reset;
     reg [15:0] inM, instruction;
@@ -31,8 +31,8 @@ module test_cpu;
     
     // Test cycle 3
     initial begin
-        $dumpfile("test_cpu.vcd");
-        $dumpvars(0, test_cpu);
+        $dumpfile("cpu_tb.vcd");
+        $dumpvars(0, cpu_tb);
         
         $display("Test CPU Cycle 3 - Saut inconditionnel (0;JMP)");
         $display("===============================================");

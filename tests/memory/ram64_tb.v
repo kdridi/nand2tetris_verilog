@@ -3,7 +3,7 @@
 
 `timescale 1ns / 1ps
 
-module test_ram64;
+module ram64_tb;
     // Signaux de test
     reg [15:0] in;
     reg [5:0] address;
@@ -58,8 +58,8 @@ module test_ram64;
     
     // Test complet
     initial begin
-        $dumpfile("test_ram64.vcd");
-        $dumpvars(0, test_ram64);
+        $dumpfile("ram64_tb.vcd");
+        $dumpvars(0, ram64_tb);
         
         $display("Test complet de la RAM64 (8×RAM8 = 64 registres)");
         $display("==================================================");

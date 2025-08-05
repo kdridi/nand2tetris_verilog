@@ -1,9 +1,9 @@
-// test_computer.v - Test programme complet "Hello CPU"
+// tests/computer/computer_tb.v - Test programme complet "Hello CPU"
 // Programme : compteur de 10 à 0 avec boucle et RAM
 
 `timescale 1ns / 1ps
 
-module test_computer;
+module computer_tb;
     // Signaux système
     reg clk, reset;
     
@@ -98,8 +98,8 @@ module test_computer;
     
     // Test et monitoring
     initial begin
-        $dumpfile("test_computer.vcd");
-        $dumpvars(0, test_computer);
+        $dumpfile("computer_tb.vcd");
+        $dumpvars(0, computer_tb);
         
         $display("=== PROGRAMME HELLO CPU ===");
         $display("Compteur de 10 à 0 avec boucle");

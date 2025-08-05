@@ -3,7 +3,7 @@
 
 `timescale 1ns / 1ps
 
-module test_add16;
+module add16_tb;
     // Signaux de test
     reg [15:0] a, b;
     wire [15:0] out;
@@ -17,8 +17,8 @@ module test_add16;
     
     // Test complet
     initial begin
-        $dumpfile("test_add16.vcd");
-        $dumpvars(0, test_add16);
+        $dumpfile("add16_tb.vcd");
+        $dumpvars(0, add16_tb);
         
         $display("Test complet de l'additionneur 16-bits");
         $display("======================================");

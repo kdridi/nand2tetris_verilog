@@ -3,7 +3,7 @@
 
 `timescale 1ns / 1ps
 
-module test_half_adder;
+module half_adder_tb;
     // Signaux de test
     reg a, b;
     wire sum, carry;
@@ -18,8 +18,8 @@ module test_half_adder;
     
     // Test complet
     initial begin
-        $dumpfile("test_half_adder.vcd");
-        $dumpvars(0, test_half_adder);
+        $dumpfile("half_adder_tb.vcd");
+        $dumpvars(0, half_adder_tb);
         
         $display("Test complet du demi-additionneur (Half Adder)");
         $display("===============================================");

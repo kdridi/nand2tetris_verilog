@@ -3,7 +3,7 @@
 
 `timescale 1ns / 1ps
 
-module test_bit;
+module bit_tb;
     // Signaux de test
     reg in, load, clk;
     wire out;
@@ -24,8 +24,8 @@ module test_bit;
     
     // Test complet
     initial begin
-        $dumpfile("test_bit.vcd");
-        $dumpvars(0, test_bit);
+        $dumpfile("bit_tb.vcd");
+        $dumpvars(0, bit_tb);
         
         $display("Test complet du registre 1-bit");
         $display("===============================");

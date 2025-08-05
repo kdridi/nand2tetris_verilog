@@ -3,7 +3,7 @@
 
 `timescale 1ns / 1ps
 
-module test_full_adder;
+module full_adder_tb;
     // Signaux de test
     reg a, b, carry_in;
     wire sum, carry_out;
@@ -19,8 +19,8 @@ module test_full_adder;
     
     // Test complet
     initial begin
-        $dumpfile("test_full_adder.vcd");
-        $dumpvars(0, test_full_adder);
+        $dumpfile("full_adder_tb.vcd");
+        $dumpvars(0, full_adder_tb);
         
         $display("Test complet de l'additionneur complet (Full Adder)");
         $display("===================================================");

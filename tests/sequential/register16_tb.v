@@ -3,7 +3,7 @@
 
 `timescale 1ns / 1ps
 
-module test_register16;
+module register16_tb;
     // Signaux de test
     reg [15:0] in;
     reg load, clk;
@@ -25,8 +25,8 @@ module test_register16;
     
     // Test complet
     initial begin
-        $dumpfile("test_register16.vcd");
-        $dumpvars(0, test_register16);
+        $dumpfile("register16_tb.vcd");
+        $dumpvars(0, register16_tb);
         
         $display("Test complet du registre 16-bits");
         $display("=================================");

@@ -3,7 +3,7 @@
 
 `timescale 1ns / 1ps
 
-module test_alu;
+module alu_tb;
     // Signaux de test
     reg [15:0] x, y;
     reg zx, nx, zy, ny, f, no;
@@ -18,7 +18,7 @@ module test_alu;
     );
     
     // Tâche pour afficher un test
-    task test_alu(
+    task test_task(
         input [15:0] test_x, test_y,
         input test_zx, test_nx, test_zy, test_ny, test_f, test_no,
         input [15:0] expected_out,
@@ -54,42 +54,42 @@ module test_alu;
     
     // Test complet
     initial begin
-        $dumpfile("test_alu.vcd");
-        $dumpvars(0, test_alu);
+        $dumpfile("alu_tb.vcd");
+        $dumpvars(0, alu_tb);
         
         $display("Test complet de l'ALU Nand2Tetris");
         $display("==================================");
         $display("");
         
         // Test des constantes
-        test_alu(16'd0, 16'd0, 1, 0, 1, 0, 1, 0, 16'd0, 1, 0, "Constante 0");
-        test_alu(16'd0, 16'd0, 1, 1, 1, 1, 1, 1, 16'd1, 0, 0, "Constante 1");
-        test_alu(16'd0, 16'd0, 1, 1, 1, 0, 1, 0, 16'hFFFF, 0, 1, "Constante -1");
+        test_task(16'd0, 16'd0, 1, 0, 1, 0, 1, 0, 16'd0, 1, 0, "Constante 0");
+        test_task(16'd0, 16'd0, 1, 1, 1, 1, 1, 1, 16'd1, 0, 0, "Constante 1");
+        test_task(16'd0, 16'd0, 1, 1, 1, 0, 1, 0, 16'hFFFF, 0, 1, "Constante -1");
         
         // Test de x
-        test_alu(16'd5, 16'd0, 0, 0, 1, 1, 0, 0, 16'd5, 0, 0, "Sortir x");
-        test_alu(16'd5, 16'd0, 0, 0, 1, 1, 0, 1, 16'hFFFA, 0, 1, "Sortir !x");
-        test_alu(16'hFFFA, 16'd0, 0, 0, 1, 1, 0, 1, 16'd5, 0, 0, "Sortir !x (négatif)");
+        test_task(16'd5, 16'd0, 0, 0, 1, 1, 0, 0, 16'd5, 0, 0, "Sortir x");
+        test_task(16'd5, 16'd0, 0, 0, 1, 1, 0, 1, 16'hFFFA, 0, 1, "Sortir !x");
+        test_task(16'hFFFA, 16'd0, 0, 0, 1, 1, 0, 1, 16'd5, 0, 0, "Sortir !x (négatif)");
         
         // Test de y  
-        test_alu(16'd0, 16'd7, 1, 1, 0, 0, 0, 0, 16'd7, 0, 0, "Sortir y");
-        test_alu(16'd0, 16'd7, 1, 1, 0, 0, 0, 1, 16'hFFF8, 0, 1, "Sortir !y");
+        test_task(16'd0, 16'd7, 1, 1, 0, 0, 0, 0, 16'd7, 0, 0, "Sortir y");
+        test_task(16'd0, 16'd7, 1, 1, 0, 0, 0, 1, 16'hFFF8, 0, 1, "Sortir !y");
         
         // Test d'addition
-        test_alu(16'd2, 16'd3, 0, 0, 0, 0, 1, 0, 16'd5, 0, 0, "x + y = 2 + 3");
-        test_alu(16'd10, 16'd5, 0, 0, 0, 0, 1, 0, 16'd15, 0, 0, "x + y = 10 + 5");
-        test_alu(16'd0, 16'd0, 0, 0, 0, 0, 1, 0, 16'd0, 1, 0, "x + y = 0 + 0");
+        test_task(16'd2, 16'd3, 0, 0, 0, 0, 1, 0, 16'd5, 0, 0, "x + y = 2 + 3");
+        test_task(16'd10, 16'd5, 0, 0, 0, 0, 1, 0, 16'd15, 0, 0, "x + y = 10 + 5");
+        test_task(16'd0, 16'd0, 0, 0, 0, 0, 1, 0, 16'd0, 1, 0, "x + y = 0 + 0");
         
         // Test avec manipulation des entrées
-        test_alu(16'd10, 16'd3, 0, 0, 0, 1, 1, 0, 16'd6, 0, 0, "x + !y = 10 + !3");
-        test_alu(16'd10, 16'd3, 0, 1, 0, 0, 1, 0, 16'hFFF8, 0, 1, "!x + y = !10 + 3");
+        test_task(16'd10, 16'd3, 0, 0, 0, 1, 1, 0, 16'd6, 0, 0, "x + !y = 10 + !3");
+        test_task(16'd10, 16'd3, 0, 1, 0, 0, 1, 0, 16'hFFF8, 0, 1, "!x + y = !10 + 3");
         
         // Test ET logique
-        test_alu(16'hF0F0, 16'h0F0F, 0, 0, 0, 0, 0, 0, 16'h0000, 1, 0, "x & y = 0xF0F0 & 0x0F0F");
-        test_alu(16'hFFFF, 16'h5555, 0, 0, 0, 0, 0, 0, 16'h5555, 0, 0, "x & y = 0xFFFF & 0x5555");
+        test_task(16'hF0F0, 16'h0F0F, 0, 0, 0, 0, 0, 0, 16'h0000, 1, 0, "x & y = 0xF0F0 & 0x0F0F");
+        test_task(16'hFFFF, 16'h5555, 0, 0, 0, 0, 0, 0, 16'h5555, 0, 0, "x & y = 0xFFFF & 0x5555");
         
         // Test OU logique (via De Morgan: x | y = !((!x) & (!y)))
-        test_alu(16'hF0F0, 16'h0F0F, 0, 1, 0, 1, 0, 1, 16'hFFFF, 0, 1, "x | y = 0xF0F0 | 0x0F0F");
+        test_task(16'hF0F0, 16'h0F0F, 0, 1, 0, 1, 0, 1, 16'hFFFF, 0, 1, "x | y = 0xF0F0 | 0x0F0F");
         
         $display("SUCCES: Tous les tests ALU passés !");
         $display("L'ALU Nand2Tetris est complètement fonctionnelle.");

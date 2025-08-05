@@ -3,7 +3,7 @@
 
 `timescale 1ns / 1ps
 
-module test_ram8;
+module ram8_tb;
     // Signaux de test
     reg [15:0] in;
     reg [2:0] address;
@@ -57,8 +57,8 @@ module test_ram8;
     
     // Test complet
     initial begin
-        $dumpfile("test_ram8.vcd");
-        $dumpvars(0, test_ram8);
+        $dumpfile("ram8_tb.vcd");
+        $dumpvars(0, ram8_tb);
         
         $display("Test complet de la RAM8");
         $display("=======================");
