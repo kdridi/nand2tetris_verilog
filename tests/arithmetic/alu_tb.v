@@ -1,103 +1,106 @@
-// tests/arithmetic/alu_tb.v - Cycle TDD 2 pour l'ALU
-// Test complet : vérifier les principales opérations de l'ALU Nand2Tetris
-
+// tests/arithmetic/alu_tb.v - Unit Test for ALU (Arithmetic Logic Unit)
 `timescale 1ns / 1ps
 
 module alu_tb;
-    // Signaux de test
-    reg [15:0] x, y;
+
+    // Test signals
+    reg [15:0] x_data, y_data;
     reg zx, nx, zy, ny, f, no;
-    wire [15:0] out;
+    wire [15:0] out_data;
     wire zr, ng;
-    
-    // Instance du module à tester
+
+    // Instance of the module to be tested
     alu uut (
-        .x(x), .y(y),
+        .x(x_data),
+        .y(y_data),
         .zx(zx), .nx(nx), .zy(zy), .ny(ny), .f(f), .no(no),
-        .out(out), .zr(zr), .ng(ng)
+        .out(out_data),
+        .zr(zr), .ng(ng)
     );
-    
-    // Tâche pour afficher un test
-    task test_task(
-        input [15:0] test_x, test_y,
-        input test_zx, test_nx, test_zy, test_ny, test_f, test_no,
-        input [15:0] expected_out,
-        input expected_zr, expected_ng,
-        input [47:0] description
-    );
-    begin
-        x = test_x; y = test_y;
-        zx = test_zx; nx = test_nx; zy = test_zy; ny = test_ny; f = test_f; no = test_no;
-        #10;
-        
-        $display("Test: %s", description);
-        $display("  Entrées: x=%d, y=%d, contrôles: zx=%b nx=%b zy=%b ny=%b f=%b no=%b", 
-                 x, y, zx, nx, zy, ny, f, no);
-        $display("  Résultat: out=%d (0x%04X), zr=%b, ng=%b", out, out, zr, ng);
-        
-        if (out !== expected_out) begin
-            $display("  ECHEC: out attendu %d (0x%04X)", expected_out, expected_out);
-            $finish;
+
+    // Constants for test values
+    localparam LOGIC_L = 0; // Low logic level
+    localparam LOGIC_H = 1; // High logic level
+
+    // Task to check the output of the ALU
+    task alu_check;
+        input [15:0] x_val, y_val;
+        input zx_val, nx_val, zy_val, ny_val, f_val, no_val;
+        input [15:0] expected_out;
+        input expected_zr, expected_ng;
+        begin
+            x_data = x_val;
+            y_data = y_val;
+            zx = zx_val; nx = nx_val; zy = zy_val; ny = ny_val; f = f_val; no = no_val;
+            #10;
+            $display("| 0x%04X | 0x%04X | %b  | %b  | %b  | %b  | %b | %b  | 0x%04X | %b  | %b  |", 
+                     x_data, y_data, zx, nx, zy, ny, f, no, out_data, zr, ng);
+
+            if (out_data !== expected_out || zr !== expected_zr || ng !== expected_ng) begin
+                $display("FAILURE: ALU(x=%04X,y=%04X,zx=%b,nx=%b,zy=%b,ny=%b,f=%b,no=%b) expected (out=%04X,zr=%b,ng=%b), obtained (out=%04X,zr=%b,ng=%b)", 
+                         x_data, y_data, zx, nx, zy, ny, f, no, expected_out, expected_zr, expected_ng, out_data, zr, ng);
+                $finish;
+            end
         end
-        if (zr !== expected_zr) begin
-            $display("  ECHEC: zr attendu %b", expected_zr);
-            $finish;
-        end
-        if (ng !== expected_ng) begin
-            $display("  ECHEC: ng attendu %b", expected_ng);
-            $finish;
-        end
-        $display("  ✓ SUCCES");
-        $display("");
-    end
     endtask
-    
-    // Test complet
+
+    // Test complete truth table
     initial begin
         $dumpfile("alu_tb.vcd");
         $dumpvars(0, alu_tb);
-        
-        $display("Test complet de l'ALU Nand2Tetris");
-        $display("==================================");
+
+        $display("ALU (Arithmetic Logic Unit) Computed Truth Table");
+        $display("+--------+--------+----+----+----+----+---+----+--------+----+----+");
+        $display("|   x    |   y    | zx | nx | zy | ny | f | no |  out   | zr | ng |");
+        $display("+--------+--------+----+----+----+----+---+----+--------+----+----+");
+
+        // Test cases with x=0000, y=FFFF
+        alu_check(16'h0000, 16'hFFFF, 1, 0, 1, 0, 1, 0, 16'h0000, 1, 0);
+        alu_check(16'h0000, 16'hFFFF, 1, 1, 1, 1, 1, 1, 16'h0001, 0, 0);
+        alu_check(16'h0000, 16'hFFFF, 1, 1, 1, 0, 1, 0, 16'hFFFF, 0, 1);
+        alu_check(16'h0000, 16'hFFFF, 0, 0, 1, 1, 0, 0, 16'h0000, 1, 0);
+        alu_check(16'h0000, 16'hFFFF, 1, 1, 0, 0, 0, 0, 16'hFFFF, 0, 1);
+        alu_check(16'h0000, 16'hFFFF, 0, 0, 1, 1, 0, 1, 16'hFFFF, 0, 1);
+        alu_check(16'h0000, 16'hFFFF, 1, 1, 0, 0, 0, 1, 16'h0000, 1, 0);
+        alu_check(16'h0000, 16'hFFFF, 0, 0, 1, 1, 1, 1, 16'h0000, 1, 0);
+        alu_check(16'h0000, 16'hFFFF, 1, 1, 0, 0, 1, 1, 16'h0001, 0, 0);
+        alu_check(16'h0000, 16'hFFFF, 0, 1, 1, 1, 1, 1, 16'h0001, 0, 0);
+        alu_check(16'h0000, 16'hFFFF, 1, 1, 0, 1, 1, 1, 16'h0000, 1, 0);
+        alu_check(16'h0000, 16'hFFFF, 0, 0, 1, 1, 1, 0, 16'hFFFF, 0, 1);
+        alu_check(16'h0000, 16'hFFFF, 1, 1, 0, 0, 1, 0, 16'hFFFE, 0, 1);
+        alu_check(16'h0000, 16'hFFFF, 0, 0, 0, 0, 1, 0, 16'hFFFF, 0, 1);
+        alu_check(16'h0000, 16'hFFFF, 0, 1, 0, 0, 1, 1, 16'h0001, 0, 0);
+        alu_check(16'h0000, 16'hFFFF, 0, 0, 0, 1, 1, 1, 16'hFFFF, 0, 1);
+        alu_check(16'h0000, 16'hFFFF, 0, 0, 0, 0, 0, 0, 16'h0000, 1, 0);
+        alu_check(16'h0000, 16'hFFFF, 0, 1, 0, 1, 0, 1, 16'hFFFF, 0, 1);
+
+        // Test cases with x=0011, y=0003  
+        alu_check(16'h0011, 16'h0003, 1, 0, 1, 0, 1, 0, 16'h0000, 1, 0);
+        alu_check(16'h0011, 16'h0003, 1, 1, 1, 1, 1, 1, 16'h0001, 0, 0);
+        alu_check(16'h0011, 16'h0003, 1, 1, 1, 0, 1, 0, 16'hFFFF, 0, 1);
+        alu_check(16'h0011, 16'h0003, 0, 0, 1, 1, 0, 0, 16'h0011, 0, 0);
+        alu_check(16'h0011, 16'h0003, 1, 1, 0, 0, 0, 0, 16'h0003, 0, 0);
+        alu_check(16'h0011, 16'h0003, 0, 0, 1, 1, 0, 1, 16'hFFEE, 0, 1);
+        alu_check(16'h0011, 16'h0003, 1, 1, 0, 0, 0, 1, 16'hFFFC, 0, 1);
+        alu_check(16'h0011, 16'h0003, 0, 0, 1, 1, 1, 1, 16'hFFEF, 0, 1);
+        alu_check(16'h0011, 16'h0003, 1, 1, 0, 0, 1, 1, 16'hFFFD, 0, 1);
+        alu_check(16'h0011, 16'h0003, 0, 1, 1, 1, 1, 1, 16'h0012, 0, 0);
+        alu_check(16'h0011, 16'h0003, 1, 1, 0, 1, 1, 1, 16'h0004, 0, 0);
+        alu_check(16'h0011, 16'h0003, 0, 0, 1, 1, 1, 0, 16'h0010, 0, 0);
+        alu_check(16'h0011, 16'h0003, 1, 1, 0, 0, 1, 0, 16'h0002, 0, 0);
+        alu_check(16'h0011, 16'h0003, 0, 0, 0, 0, 1, 0, 16'h0014, 0, 0);
+        alu_check(16'h0011, 16'h0003, 0, 1, 0, 0, 1, 1, 16'h000E, 0, 0);
+        alu_check(16'h0011, 16'h0003, 0, 0, 0, 1, 1, 1, 16'hFFF2, 0, 1);
+        alu_check(16'h0011, 16'h0003, 0, 0, 0, 0, 0, 0, 16'h0001, 0, 0);
+        alu_check(16'h0011, 16'h0003, 0, 1, 0, 1, 0, 1, 16'h0013, 0, 0);
+
+        $display("+--------+--------+----+----+----+----+---+----+--------+----+----+");
+
         $display("");
-        
-        // Test des constantes
-        test_task(16'd0, 16'd0, 1, 0, 1, 0, 1, 0, 16'd0, 1, 0, "Constante 0");
-        test_task(16'd0, 16'd0, 1, 1, 1, 1, 1, 1, 16'd1, 0, 0, "Constante 1");
-        test_task(16'd0, 16'd0, 1, 1, 1, 0, 1, 0, 16'hFFFF, 0, 1, "Constante -1");
-        
-        // Test de x
-        test_task(16'd5, 16'd0, 0, 0, 1, 1, 0, 0, 16'd5, 0, 0, "Sortir x");
-        test_task(16'd5, 16'd0, 0, 0, 1, 1, 0, 1, 16'hFFFA, 0, 1, "Sortir !x");
-        test_task(16'hFFFA, 16'd0, 0, 0, 1, 1, 0, 1, 16'd5, 0, 0, "Sortir !x (négatif)");
-        
-        // Test de y  
-        test_task(16'd0, 16'd7, 1, 1, 0, 0, 0, 0, 16'd7, 0, 0, "Sortir y");
-        test_task(16'd0, 16'd7, 1, 1, 0, 0, 0, 1, 16'hFFF8, 0, 1, "Sortir !y");
-        
-        // Test d'addition
-        test_task(16'd2, 16'd3, 0, 0, 0, 0, 1, 0, 16'd5, 0, 0, "x + y = 2 + 3");
-        test_task(16'd10, 16'd5, 0, 0, 0, 0, 1, 0, 16'd15, 0, 0, "x + y = 10 + 5");
-        test_task(16'd0, 16'd0, 0, 0, 0, 0, 1, 0, 16'd0, 1, 0, "x + y = 0 + 0");
-        
-        // Test avec manipulation des entrées
-        test_task(16'd10, 16'd3, 0, 0, 0, 1, 1, 0, 16'd6, 0, 0, "x + !y = 10 + !3");
-        test_task(16'd10, 16'd3, 0, 1, 0, 0, 1, 0, 16'hFFF8, 0, 1, "!x + y = !10 + 3");
-        
-        // Test ET logique
-        test_task(16'hF0F0, 16'h0F0F, 0, 0, 0, 0, 0, 0, 16'h0000, 1, 0, "x & y = 0xF0F0 & 0x0F0F");
-        test_task(16'hFFFF, 16'h5555, 0, 0, 0, 0, 0, 0, 16'h5555, 0, 0, "x & y = 0xFFFF & 0x5555");
-        
-        // Test OU logique (via De Morgan: x | y = !((!x) & (!y)))
-        test_task(16'hF0F0, 16'h0F0F, 0, 1, 0, 1, 0, 1, 16'hFFFF, 0, 1, "x | y = 0xF0F0 | 0x0F0F");
-        
-        $display("SUCCES: Tous les tests ALU passés !");
-        $display("L'ALU Nand2Tetris est complètement fonctionnelle.");
-        $display("");
-        $display("🎉 ALU COMPLETE !");
-        $display("Le cœur computationnel est opérationnel !");
-        
+
+        $display("SUCCESS: All tests passed!");
+        $display("The ALU (Arithmetic Logic Unit) is fully functional.");
         $finish;
     end
-    
+
 endmodule

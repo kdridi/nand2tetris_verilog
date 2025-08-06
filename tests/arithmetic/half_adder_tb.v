@@ -1,70 +1,66 @@
-// tests/arithmetic/half_adder_tb.v - Cycle TDD 2 pour le demi-additionneur
-// Test complet : vérifier la table de vérité complète
-
+// tests/arithmetic/half_adder_tb.v - Unit Test for HalfAdder (2-bit to 2-bit Adder)
 `timescale 1ns / 1ps
 
 module half_adder_tb;
-    // Signaux de test
-    reg a, b;
-    wire sum, carry;
-    
-    // Instance du module à tester
+
+    // Test signals
+    reg a_data, b_data;
+    wire sum_data, carry_data;
+
+    // Instance of the module to be tested
     half_adder uut (
-        .a(a),
-        .b(b),
-        .sum(sum),
-        .carry(carry)
+        .a(a_data),
+        .b(b_data),
+        .sum(sum_data),
+        .carry(carry_data)
     );
-    
-    // Test complet
+
+    // Constants for test values
+    localparam LOGIC_L = 0; // Low logic level
+    localparam LOGIC_H = 1; // High logic level
+
+    // Task to check the output of the HalfAdder
+    task half_adder_check;
+        input a_val, b_val;
+        input expected_sum, expected_carry;
+        begin
+            a_data = a_val;
+            b_data = b_val;
+            #10;
+            $display("|   %b   |   %b   |   %b   |   %b   |", 
+                     a_data, b_data, sum_data, carry_data);
+
+            if (sum_data !== expected_sum || carry_data !== expected_carry) begin
+                $display("FAILURE: HalfAdder(a=%b,b=%b) expected (sum=%b,carry=%b), obtained (sum=%b,carry=%b)", 
+                         a_data, b_data, expected_sum, expected_carry, sum_data, carry_data);
+                $finish;
+            end
+        end
+    endtask
+
+    // Test complete truth table
     initial begin
         $dumpfile("half_adder_tb.vcd");
         $dumpvars(0, half_adder_tb);
+
+        $display("HalfAdder (2-bit to 2-bit) Computed Truth Table");
+        $display("+-------+-------+-------+-------+");
+        $display("|   a   |   b   |  sum  | carry |");
+        $display("+-------+-------+-------+-------+");
         
-        $display("Test complet du demi-additionneur (Half Adder)");
-        $display("===============================================");
-        $display("a | b | sum | carry | addition");
-        $display("--|---|-----|-------|--------");
+        // Test all 4 possible combinations (2^2 = 4)
+        half_adder_check(LOGIC_L, LOGIC_L, LOGIC_L, LOGIC_L); // 0+0 = 0
+        half_adder_check(LOGIC_L, LOGIC_H, LOGIC_H, LOGIC_L); // 0+1 = 1
+        half_adder_check(LOGIC_H, LOGIC_L, LOGIC_H, LOGIC_L); // 1+0 = 1
+        half_adder_check(LOGIC_H, LOGIC_H, LOGIC_L, LOGIC_H); // 1+1 = 2 (10 in binary)
         
-        // Test 1: 0 + 0 = 0, carry = 0
-        a = 0; b = 0; #10;
-        $display("%b | %b |  %b  |   %b   | %b + %b = %b%b", a, b, sum, carry, a, b, carry, sum);
-        if (sum !== 1'b0 || carry !== 1'b0) begin
-            $display("ECHEC: HA(0,0) -> sum=%b, carry=%b, attendu sum=0, carry=0", sum, carry);
-            $finish;
-        end
-        
-        // Test 2: 0 + 1 = 1, carry = 0
-        a = 0; b = 1; #10;
-        $display("%b | %b |  %b  |   %b   | %b + %b = %b%b", a, b, sum, carry, a, b, carry, sum);
-        if (sum !== 1'b1 || carry !== 1'b0) begin
-            $display("ECHEC: HA(0,1) -> sum=%b, carry=%b, attendu sum=1, carry=0", sum, carry);
-            $finish;
-        end
-        
-        // Test 3: 1 + 0 = 1, carry = 0
-        a = 1; b = 0; #10;
-        $display("%b | %b |  %b  |   %b   | %b + %b = %b%b", a, b, sum, carry, a, b, carry, sum);
-        if (sum !== 1'b1 || carry !== 1'b0) begin
-            $display("ECHEC: HA(1,0) -> sum=%b, carry=%b, attendu sum=1, carry=0", sum, carry);
-            $finish;
-        end
-        
-        // Test 4: 1 + 1 = 0, carry = 1 (1 + 1 = 10 en binaire)
-        a = 1; b = 1; #10;
-        $display("%b | %b |  %b  |   %b   | %b + %b = %b%b", a, b, sum, carry, a, b, carry, sum);
-        if (sum !== 1'b0 || carry !== 1'b1) begin
-            $display("ECHEC: HA(1,1) -> sum=%b, carry=%b, attendu sum=0, carry=1", sum, carry);
-            $finish;
-        end
-        
+        $display("+-------+-------+-------+-------+");
+
         $display("");
-        $display("SUCCES: Tous les tests Half Adder passés !");
-        $display("Le demi-additionneur est fonctionnel.");
-        $display("");
-        $display("🎉 PREMIER CIRCUIT ARITHMETIQUE COMPLETE !");
-        $display("Prêt pour le Full Adder (additionneur complet) !");
+
+        $display("SUCCESS: All tests passed!");
+        $display("The HalfAdder (2-bit to 2-bit Adder) is fully functional.");
         $finish;
     end
-    
+
 endmodule
