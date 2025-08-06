@@ -1,137 +1,113 @@
-// tests/sequential/register16_tb.v - Cycle TDD 2 pour le registre 16-bits
-// Test complet : vérifier la charge et conservation de mots 16-bits
-
+// tests/sequential/register16_tb.v - Unit Test for 16-bit Register with Load Control
 `timescale 1ns / 1ps
 
 module register16_tb;
-    // Signaux de test
-    reg [15:0] in;
-    reg load, clk;
-    wire [15:0] out;
-    
-    // Instance du module à tester
+
+    // Test signals
+    reg [15:0] data_in;
+    reg load_enable, clock_signal;
+    wire [15:0] data_out;
+
+    // Instance of the module to be tested
     register16 uut (
-        .in(in),
-        .load(load),
-        .clk(clk),
-        .out(out)
+        .in(data_in),
+        .load(load_enable),
+        .clk(clock_signal),
+        .out(data_out)
     );
-    
-    // Génération d'horloge
+
+    // Constants for test values
+    localparam LOGIC_L = 0; // Low logic level
+    localparam LOGIC_H = 1; // High logic level
+
+    // Clock generation
     initial begin
-        clk = 0;
-        forever #5 clk = ~clk; // Période de 10ns
+        clock_signal = 0;
+        forever #5 clock_signal = ~clock_signal; // 10ns period (100MHz)
     end
-    
-    // Test complet
+
+    // Task to check register16 load operation
+    task register16_load_check;
+        input [15:0] in_val;
+        input load_val;
+        input [15:0] expected_out;
+        begin
+            data_in = in_val;
+            load_enable = load_val;
+            @(posedge clock_signal); // Wait for positive clock edge
+            #1; // Propagation delay
+            $display("| 0x%04X |   %b   | 0x%04X |   Load   |", data_in, load_enable, data_out);
+
+            if (data_out !== expected_out) begin
+                $display("FAILURE: Register16(in=0x%04X,load=%b) expected out=0x%04X, obtained out=0x%04X", 
+                         data_in, load_enable, expected_out, data_out);
+                $finish;
+            end
+        end
+    endtask
+
+    // Task to check register16 memory behavior (load=0)
+    task register16_memory_check;
+        input [15:0] in_val;
+        input [15:0] expected_out;
+        begin
+            data_in = in_val;
+            load_enable = LOGIC_L; // Disable load
+            @(posedge clock_signal);
+            #1;
+            $display("| 0x%04X |   %b   | 0x%04X |  Memory  |", data_in, load_enable, data_out);
+
+            if (data_out !== expected_out) begin
+                $display("FAILURE: Register16 memory should maintain out=0x%04X, obtained out=0x%04X", 
+                         expected_out, data_out);
+                $finish;
+            end
+        end
+    endtask
+
+    // Test 16-bit register functionality
     initial begin
         $dumpfile("register16_tb.vcd");
         $dumpvars(0, register16_tb);
-        
-        $display("Test complet du registre 16-bits");
-        $display("=================================");
-        
-        // Initialisation
-        in = 16'h0000;
-        load = 0;
-        #2;
-        
-        $display("Phase 1: Chargement de 0x1234");
-        // Test 1: Charger 0x1234
-        in = 16'h1234;
-        load = 1;
-        $display("  Avant front: in=0x%04X, load=%b, out=0x%04X", in, load, out);
-        @(posedge clk); #1;
-        $display("  Après front: in=0x%04X, load=%b, out=0x%04X", in, load, out);
-        if (out !== 16'h1234) begin
-            $display("ECHEC: out devrait être 0x1234");
-            $finish;
-        end
-        
-        $display("Phase 2: Conservation (load=0)");
-        // Test 2: Changer in mais avec load=0
-        in = 16'h5678;
-        load = 0;
-        $display("  Avant front: in=0x%04X, load=%b, out=0x%04X", in, load, out);
-        @(posedge clk); #1;
-        $display("  Après front: in=0x%04X, load=%b, out=0x%04X", in, load, out);
-        if (out !== 16'h1234) begin // Doit rester à 0x1234
-            $display("ECHEC: out devrait rester à 0x1234");
-            $finish;
-        end
-        
-        $display("Phase 3: Nouveau chargement de 0xABCD");
-        // Test 3: Charger 0xABCD
-        in = 16'hABCD;
-        load = 1;
-        $display("  Avant front: in=0x%04X, load=%b, out=0x%04X", in, load, out);
-        @(posedge clk); #1;
-        $display("  Après front: in=0x%04X, load=%b, out=0x%04X", in, load, out);
-        if (out !== 16'hABCD) begin
-            $display("ECHEC: out devrait être 0xABCD");
-            $finish;
-        end
-        
-        $display("Phase 4: Test avec patterns spéciaux");
-        // Test 4: Patterns alternants
-        in = 16'hAAAA;
-        load = 1;
-        @(posedge clk); #1;
-        $display("  Pattern 0xAAAA: out=0x%04X", out);
-        if (out !== 16'hAAAA) begin
-            $display("ECHEC: out devrait être 0xAAAA");
-            $finish;
-        end
-        
-        in = 16'h5555;
-        load = 1;
-        @(posedge clk); #1;
-        $display("  Pattern 0x5555: out=0x%04X", out);
-        if (out !== 16'h5555) begin
-            $display("ECHEC: out devrait être 0x5555");
-            $finish;
-        end
-        
-        $display("Phase 5: Test des extrema");
-        // Test 5: Valeurs extrêmes
-        in = 16'h0000;
-        load = 1;
-        @(posedge clk); #1;
-        $display("  Zéro: out=0x%04X", out);
-        if (out !== 16'h0000) begin
-            $display("ECHEC: out devrait être 0x0000");
-            $finish;
-        end
-        
-        in = 16'hFFFF;
-        load = 1;
-        @(posedge clk); #1;
-        $display("  Maximum: out=0x%04X", out);
-        if (out !== 16'hFFFF) begin
-            $display("ECHEC: out devrait être 0xFFFF");
-            $finish;
-        end
-        
-        $display("Phase 6: Conservation du maximum");
-        // Test 6: Conserver 0xFFFF
-        in = 16'h0000; // Changer in mais ne pas charger
-        load = 0;
-        @(posedge clk); #1;
-        $display("  Conservation: out=0x%04X", out);
-        if (out !== 16'hFFFF) begin
-            $display("ECHEC: out devrait rester à 0xFFFF");
-            $finish;
-        end
-        
+
+        $display("16-bit Register with Load Control Test");
+        $display("+--------+-------+--------+----------+");
+        $display("|   in   | load  |  out   | Operation|");
+        $display("+--------+-------+--------+----------+");
+
+        // Initialize
+        data_in = 16'h0000;
+        load_enable = LOGIC_L;
+        #2; // Stabilization
+
+        // Test 1: Load basic test pattern
+        register16_load_check(16'h1234, LOGIC_H, 16'h1234);
+
+        // Test 2: Memory behavior - input changes but load=0
+        register16_memory_check(16'h5678, 16'h1234); // Should maintain 16'h1234
+
+        // Test 3: Load new pattern
+        register16_load_check(16'hABCD, LOGIC_H, 16'hABCD);
+
+        // Test 4: Test alternating bit patterns
+        register16_load_check(16'hAAAA, LOGIC_H, 16'hAAAA);  // Alternating bits
+        register16_load_check(16'h5555, LOGIC_H, 16'h5555);  // Alternating bits
+
+        // Test 5: Test boundary values
+        register16_load_check(16'h0000, LOGIC_H, 16'h0000);  // Zero
+        register16_load_check(16'hFFFF, LOGIC_H, 16'hFFFF);  // Maximum
+
+        // Test 6: Memory behavior with maximum value
+        register16_memory_check(16'h0000, 16'hFFFF);         // Should maintain 16'hFFFF
+
+        $display("+--------+-------+--------+----------+");
+
         $display("");
-        $display("SUCCES: Tous les tests Register16 passés !");
-        $display("Le registre 16-bits fonctionne parfaitement.");
-        $display("");
-        $display("🎉 REGISTRE 16-BITS COMPLETE !");
-        $display("Architecture mémoire de base terminée !");
-        
+
+        $display("SUCCESS: All tests passed!");
+        $display("The 16-bit register with load control is fully functional.");
         #10;
         $finish;
     end
-    
+
 endmodule

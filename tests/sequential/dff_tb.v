@@ -1,106 +1,98 @@
-// tests/sequential/dff_tb.v - Cycle TDD 2 pour le D Flip-Flop
-// Test complet : vérifier le stockage et la mémorisation
-
+// tests/sequential/dff_tb.v - Unit Test for D-Flip-Flop (Basic Memory Element)
 `timescale 1ns / 1ps
 
 module dff_tb;
-    // Signaux de test
-    reg d, clk;
-    wire q;
-    
-    // Instance du module à tester
+
+    // Test signals
+    reg data_in, clock_signal;
+    wire data_out;
+
+    // Instance of the module to be tested
     dff uut (
-        .d(d),
-        .clk(clk),
-        .q(q)
+        .d(data_in),
+        .clk(clock_signal),
+        .q(data_out)
     );
-    
-    // Génération d'horloge
+
+    // Constants for test values
+    localparam LOGIC_L = 0; // Low logic level
+    localparam LOGIC_H = 1; // High logic level
+
+    // Clock generation
     initial begin
-        clk = 0;
-        forever #5 clk = ~clk; // Période de 10ns (100MHz)
+        clock_signal = 0;
+        forever #5 clock_signal = ~clock_signal; // 10ns period (100MHz)
     end
-    
-    // Test complet
+
+    // Task to check DFF behavior on clock edge
+    task dff_edge_check;
+        input d_val;
+        input expected_q;
+        begin
+            data_in = d_val;
+            @(posedge clock_signal); // Wait for positive clock edge
+            #1; // Propagation delay
+            $display("|   %b   |   %b   | Clock Edge |", data_in, data_out);
+
+            if (data_out !== expected_q) begin
+                $display("FAILURE: DFF(d=%b) expected q=%b, obtained q=%b", data_in, expected_q, data_out);
+                $finish;
+            end
+        end
+    endtask
+
+    // Task to check DFF memory behavior (no clock edge)
+    task dff_memory_check;
+        input d_val;
+        input expected_q;
+        begin
+            data_in = d_val;
+            #3; // Wait without clock edge
+            $display("|   %b   |   %b   |  No Edge   |", data_in, data_out);
+
+            if (data_out !== expected_q) begin
+                $display("FAILURE: DFF memory should maintain q=%b, obtained q=%b", expected_q, data_out);
+                $finish;
+            end
+        end
+    endtask
+
+    // Test sequential behavior
     initial begin
         $dumpfile("dff_tb.vcd");
         $dumpvars(0, dff_tb);
-        
-        $display("Test complet du D Flip-Flop");
-        $display("===========================");
-        
-        // Initialisation
-        d = 0;
-        #2; // Stabilisation
-        
-        $display("Phase 1: Stockage d'un 1");
-        // Test 1: Stocker un 1
-        d = 1;
-        $display("  Avant front: d=%b, q=%b", d, q);
-        @(posedge clk);
-        #1; // Délai de propagation
-        $display("  Après front: d=%b, q=%b", d, q);
-        if (q !== 1'b1) begin
-            $display("ECHEC: q devrait être 1");
-            $finish;
-        end
-        
-        $display("Phase 2: Mémorisation (d change mais pas sur front d'horloge)");
-        // Test 2: Changer d entre les fronts d'horloge
-        #2;
-        d = 0; // Changer d mais pas sur un front
-        #2;
-        $display("  d changé à 0 entre fronts: d=%b, q=%b", d, q);
-        if (q !== 1'b1) begin // q doit rester à 1
-            $display("ECHEC: q devrait rester à 1");
-            $finish;
-        end
-        
-        $display("Phase 3: Nouveau stockage d'un 0");
-        // Test 3: Stocker un 0 sur le prochain front
-        @(posedge clk);
-        #1;
-        $display("  Après front avec d=0: d=%b, q=%b", d, q);
-        if (q !== 1'b0) begin
-            $display("ECHEC: q devrait être 0");
-            $finish;
-        end
-        
-        $display("Phase 4: Alternance rapide");
-        // Test 4: Plusieurs alternances
-        d = 1;
-        @(posedge clk); #1;
-        $display("  Cycle 1: d=%b, q=%b", d, q);
-        if (q !== 1'b1) begin
-            $display("ECHEC: q devrait être 1");
-            $finish;
-        end
-        
-        d = 0;
-        @(posedge clk); #1;
-        $display("  Cycle 2: d=%b, q=%b", d, q);
-        if (q !== 1'b0) begin
-            $display("ECHEC: q devrait être 0");
-            $finish;
-        end
-        
-        d = 1;
-        @(posedge clk); #1;
-        $display("  Cycle 3: d=%b, q=%b", d, q);
-        if (q !== 1'b1) begin
-            $display("ECHEC: q devrait être 1");
-            $finish;
-        end
-        
+
+        $display("D-Flip-Flop Sequential Logic Test");
+        $display("+-------+-------+------------+");
+        $display("|   d   |   q   |   Event    |");
+        $display("+-------+-------+------------+");
+
+        // Initialize
+        data_in = LOGIC_L;
+        #2; // Stabilization
+
+        // Test 1: Store logic HIGH
+        dff_edge_check(LOGIC_H, LOGIC_H);
+
+        // Test 2: Memory behavior - d changes but no clock edge
+        dff_memory_check(LOGIC_L, LOGIC_H); // q should remain HIGH
+
+        // Test 3: Store logic LOW on next clock edge
+        dff_edge_check(LOGIC_L, LOGIC_L);
+
+        // Test 4: Rapid alternation
+        dff_edge_check(LOGIC_H, LOGIC_H);
+        dff_edge_check(LOGIC_L, LOGIC_L);
+        dff_edge_check(LOGIC_H, LOGIC_H);
+
+        $display("+-------+-------+------------+");
+
         $display("");
-        $display("SUCCES: Tous les tests DFF passés !");
-        $display("Le D Flip-Flop fonctionne correctement.");
-        $display("");
-        $display("🎉 ELEMENT DE MEMOIRE DE BASE COMPLETE !");
-        $display("Prêt pour les registres multi-bits !");
-        
+
+        $display("SUCCESS: All tests passed!");
+        $display("The D-Flip-Flop (basic memory element) is fully functional.");
         #10;
         $finish;
     end
-    
+
 endmodule

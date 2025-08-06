@@ -1,163 +1,111 @@
-// tests/sequential/program_counter_tb.v - Cycle TDD 2 pour le Program Counter
-// Test complet : vérifier reset, load, inc et les priorités
-
+// tests/sequential/program_counter_tb.v - Unit Test for 16-bit Program Counter
 `timescale 1ns / 1ps
 
 module program_counter_tb;
-    // Signaux de test
-    reg [15:0] in;
-    reg load, inc, reset, clk;
-    wire [15:0] out;
-    
-    // Instance du module à tester
+
+    // Test signals
+    reg [15:0] address_in;
+    reg load_enable, increment_enable, reset_enable, clock_signal;
+    wire [15:0] pc_out;
+
+    // Instance of the module to be tested
     program_counter uut (
-        .in(in),
-        .load(load),
-        .inc(inc),
-        .reset(reset),
-        .clk(clk),
-        .out(out)
+        .in(address_in),
+        .load(load_enable),
+        .inc(increment_enable),
+        .reset(reset_enable),
+        .clk(clock_signal),
+        .out(pc_out)
     );
-    
-    // Génération d'horloge
+
+    // Constants for test values
+    localparam LOGIC_L = 0; // Low logic level
+    localparam LOGIC_H = 1; // High logic level
+
+    // Clock generation
     initial begin
-        clk = 0;
-        forever #5 clk = ~clk; // Période de 10ns
+        clock_signal = 0;
+        forever #5 clock_signal = ~clock_signal; // 10ns period (100MHz)
     end
-    
-    // Test complet
+
+    // Task to check PC operation
+    task pc_operation_check;
+        input [15:0] in_val;
+        input load_val, inc_val, reset_val;
+        input [15:0] expected_out;
+        input [88:0] operation_name;
+        begin
+            address_in = in_val;
+            load_enable = load_val;
+            increment_enable = inc_val;
+            reset_enable = reset_val;
+            @(posedge clock_signal); // Wait for positive clock edge
+            #1; // Propagation delay
+            $display("| 0x%04X |   %b   |   %b   |   %b   | 0x%04X | %s |", 
+                     address_in, load_enable, increment_enable, reset_enable, pc_out, operation_name);
+
+            if (pc_out !== expected_out) begin
+                $display("FAILURE: PC(in=0x%04X,load=%b,inc=%b,reset=%b) expected 0x%04X, obtained 0x%04X", 
+                         address_in, load_enable, increment_enable, reset_enable, expected_out, pc_out);
+                $finish;
+            end
+        end
+    endtask
+
+    // Test program counter functionality
     initial begin
         $dumpfile("program_counter_tb.vcd");
         $dumpvars(0, program_counter_tb);
-        
-        $display("Test complet du Program Counter");
-        $display("================================");
-        
-        // Initialisation
-        in = 16'h0000;
-        load = 0;
-        inc = 0;
-        reset = 0;
-        #2;
-        
-        $display("Phase 1: Reset initial");
-        // Test 1: Reset
-        reset = 1;
-        @(posedge clk); #1;
-        $display("  Reset: out=0x%04X", out);
-        if (out !== 16'h0000) begin
-            $display("ECHEC: reset devrait donner 0x0000");
-            $finish;
-        end
-        
-        $display("Phase 2: Incrémentation");
-        // Test 2: Incrémenter depuis 0
-        reset = 0;
-        inc = 1;
-        @(posedge clk); #1;
-        $display("  Inc 0→1: out=0x%04X", out);
-        if (out !== 16'h0001) begin
-            $display("ECHEC: inc devrait donner 0x0001");
-            $finish;
-        end
-        
-        // Test 3: Continuer à incrémenter  
-        @(posedge clk); #1;
-        $display("  Inc 1→2: out=0x%04X", out);
-        if (out !== 16'h0002) begin
-            $display("ECHEC: inc devrait donner 0x0002");
-            $finish;
-        end
-        
-        @(posedge clk); #1;
-        $display("  Inc 2→3: out=0x%04X", out);
-        if (out !== 16'h0003) begin
-            $display("ECHEC: inc devrait donner 0x0003");
-            $finish;
-        end
-        
-        $display("Phase 3: Chargement (load)");
-        // Test 4: Load une valeur
-        inc = 0;
-        load = 1;
-        in = 16'h1234;
-        @(posedge clk); #1;
-        $display("  Load 0x1234: out=0x%04X", out);
-        if (out !== 16'h1234) begin
-            $display("ECHEC: load devrait donner 0x1234");
-            $finish;
-        end
-        
-        $display("Phase 4: Conservation (hold)");
-        // Test 5: Ne rien faire (hold)
-        load = 0;
-        inc = 0;
-        @(posedge clk); #1;
-        $display("  Hold: out=0x%04X", out);
-        if (out !== 16'h1234) begin
-            $display("ECHEC: hold devrait conserver 0x1234");
-            $finish;
-        end
-        
-        $display("Phase 5: Incrémentation depuis valeur chargée");
-        // Test 6: Incrémenter depuis 0x1234
-        inc = 1;
-        @(posedge clk); #1;
-        $display("  Inc 0x1234→0x1235: out=0x%04X", out);
-        if (out !== 16'h1235) begin
-            $display("ECHEC: inc devrait donner 0x1235");
-            $finish;
-        end
-        
-        $display("Phase 6: Test des priorités");
-        // Test 7: load ET inc → load gagne
-        load = 1;
-        inc = 1;
-        in = 16'h5678;
-        @(posedge clk); #1;
-        $display("  Load+Inc (load gagne): out=0x%04X", out);
-        if (out !== 16'h5678) begin
-            $display("ECHEC: load devrait avoir priorité sur inc");
-            $finish;
-        end
-        
-        // Test 8: reset ET load ET inc → reset gagne
-        reset = 1;
-        load = 1;
-        inc = 1;
-        in = 16'hABCD;
-        @(posedge clk); #1;
-        $display("  Reset+Load+Inc (reset gagne): out=0x%04X", out);
-        if (out !== 16'h0000) begin
-            $display("ECHEC: reset devrait avoir priorité absolue");
-            $finish;
-        end
-        
-        $display("Phase 7: Débordement");
-        // Test 9: Débordement 16-bits
-        reset = 0;
-        load = 1;
-        inc = 0;
-        in = 16'hFFFF;
-        @(posedge clk); #1;
-        load = 0;
-        inc = 1;
-        @(posedge clk); #1;
-        $display("  Débordement 0xFFFF→0x0000: out=0x%04X", out);
-        if (out !== 16'h0000) begin
-            $display("ECHEC: débordement devrait donner 0x0000");
-            $finish;
-        end
-        
+
+        $display("16-bit Program Counter Test");
+        $display("+--------+-------+-------+-------+--------+--------------+");
+        $display("|   in   | load  |  inc  | reset |  out   |   Operation  |");
+        $display("+--------+-------+-------+-------+--------+--------------+");
+
+        // Initialize
+        address_in = 16'h0000;
+        load_enable = LOGIC_L;
+        increment_enable = LOGIC_L;
+        reset_enable = LOGIC_L;
+        #2; // Stabilization
+
+        // Test 1: Reset operation (highest priority)
+        pc_operation_check(16'h0000, LOGIC_L, LOGIC_L, LOGIC_H, 16'h0000, "Reset");
+
+        // Test 2: Increment from 0
+        pc_operation_check(16'h0000, LOGIC_L, LOGIC_H, LOGIC_L, 16'h0001, "Inc 0->1");
+
+        // Test 3: Continue incrementing
+        pc_operation_check(16'h0000, LOGIC_L, LOGIC_H, LOGIC_L, 16'h0002, "Inc 1->2");
+        pc_operation_check(16'h0000, LOGIC_L, LOGIC_H, LOGIC_L, 16'h0003, "Inc 2->3");
+
+        // Test 4: Load operation
+        pc_operation_check(16'h1234, LOGIC_H, LOGIC_L, LOGIC_L, 16'h1234, "Load 0x1234");
+
+        // Test 5: Hold operation
+        pc_operation_check(16'h5678, LOGIC_L, LOGIC_L, LOGIC_L, 16'h1234, "Hold");
+
+        // Test 6: Increment from loaded value
+        pc_operation_check(16'h0000, LOGIC_L, LOGIC_H, LOGIC_L, 16'h1235, "Inc loaded");
+
+        // Test 7: Priority test - load over inc
+        pc_operation_check(16'h5678, LOGIC_H, LOGIC_H, LOGIC_L, 16'h5678, "Load>Inc");
+
+        // Test 8: Priority test - reset over all
+        pc_operation_check(16'hABCD, LOGIC_H, LOGIC_H, LOGIC_H, 16'h0000, "Reset>All");
+
+        // Test 9: Overflow test
+        pc_operation_check(16'hFFFF, LOGIC_H, LOGIC_L, LOGIC_L, 16'hFFFF, "Load 0xFFFF");
+        pc_operation_check(16'h0000, LOGIC_L, LOGIC_H, LOGIC_L, 16'h0000, "Overflow");
+
+        $display("+--------+-------+-------+-------+--------+--------------+");
+
         $display("");
-        $display("SUCCES: Tous les tests Program Counter passés !");
-        $display("Le PC fonctionne parfaitement.");
-        $display("");
-        $display("🎉 PROGRAM COUNTER COMPLETE !");
-        $display("Le chef d'orchestre des instructions est opérationnel !");
-        
+
+        $display("SUCCESS: All tests passed!");
+        $display("The 16-bit program counter is fully functional.");
         #10;
         $finish;
     end
-    
+
 endmodule

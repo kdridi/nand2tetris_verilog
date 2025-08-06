@@ -1,120 +1,108 @@
-// tests/sequential/bit_tb.v - Cycle TDD 2 pour le registre 1-bit
-// Test complet : vérifier la charge et la conservation
-
+// tests/sequential/bit_tb.v - Unit Test for 1-bit Register with Load Control
 `timescale 1ns / 1ps
 
 module bit_tb;
-    // Signaux de test
-    reg in, load, clk;
-    wire out;
-    
-    // Instance du module à tester
+
+    // Test signals
+    reg data_in, load_enable, clock_signal;
+    wire data_out;
+
+    // Instance of the module to be tested
     bit uut (
-        .in(in),
-        .load(load),
-        .clk(clk),
-        .out(out)
+        .in(data_in),
+        .load(load_enable),
+        .clk(clock_signal),
+        .out(data_out)
     );
-    
-    // Génération d'horloge
+
+    // Constants for test values
+    localparam LOGIC_L = 0; // Low logic level
+    localparam LOGIC_H = 1; // High logic level
+
+    // Clock generation
     initial begin
-        clk = 0;
-        forever #5 clk = ~clk; // Période de 10ns
+        clock_signal = 0;
+        forever #5 clock_signal = ~clock_signal; // 10ns period (100MHz)
     end
-    
-    // Test complet
+
+    // Task to check bit register load operation
+    task bit_load_check;
+        input in_val, load_val;
+        input expected_out;
+        begin
+            data_in = in_val;
+            load_enable = load_val;
+            @(posedge clock_signal); // Wait for positive clock edge
+            #1; // Propagation delay
+            $display("|   %b   |   %b   |   %b   |   Load   |", data_in, load_enable, data_out);
+
+            if (data_out !== expected_out) begin
+                $display("FAILURE: Bit(in=%b,load=%b) expected out=%b, obtained out=%b", 
+                         data_in, load_enable, expected_out, data_out);
+                $finish;
+            end
+        end
+    endtask
+
+    // Task to check bit register memory behavior (load=0)
+    task bit_memory_check;
+        input in_val;
+        input expected_out;
+        begin
+            data_in = in_val;
+            load_enable = LOGIC_L; // Disable load
+            @(posedge clock_signal);
+            #1;
+            $display("|   %b   |   %b   |   %b   |  Memory  |", data_in, load_enable, data_out);
+
+            if (data_out !== expected_out) begin
+                $display("FAILURE: Bit memory should maintain out=%b, obtained out=%b", 
+                         expected_out, data_out);
+                $finish;
+            end
+        end
+    endtask
+
+    // Test 1-bit register functionality
     initial begin
         $dumpfile("bit_tb.vcd");
         $dumpvars(0, bit_tb);
-        
-        $display("Test complet du registre 1-bit");
-        $display("===============================");
-        
-        // Initialisation
-        in = 0;
-        load = 0;
-        #2;
-        
-        $display("Phase 1: Chargement d'un 1");
-        // Test 1: Charger un 1
-        in = 1;
-        load = 1;
-        $display("  Avant front: in=%b, load=%b, out=%b", in, load, out);
-        @(posedge clk); #1;
-        $display("  Après front: in=%b, load=%b, out=%b", in, load, out);
-        if (out !== 1'b1) begin
-            $display("ECHEC: out devrait être 1");
-            $finish;
-        end
-        
-        $display("Phase 2: Conservation (load=0)");
-        // Test 2: Changer in mais avec load=0 (doit conserver)
-        in = 0;
-        load = 0;
-        $display("  Avant front: in=%b, load=%b, out=%b", in, load, out);
-        @(posedge clk); #1;
-        $display("  Après front: in=%b, load=%b, out=%b", in, load, out);
-        if (out !== 1'b1) begin // Doit rester à 1
-            $display("ECHEC: out devrait rester à 1");
-            $finish;
-        end
-        
-        $display("Phase 3: Nouveau chargement d'un 0");
-        // Test 3: Charger un 0
-        in = 0;
-        load = 1;
-        $display("  Avant front: in=%b, load=%b, out=%b", in, load, out);
-        @(posedge clk); #1;
-        $display("  Après front: in=%b, load=%b, out=%b", in, load, out);
-        if (out !== 1'b0) begin
-            $display("ECHEC: out devrait être 0");
-            $finish;
-        end
-        
-        $display("Phase 4: Conservation du 0");
-        // Test 4: Conserver le 0
-        in = 1; // Changer in mais load=0
-        load = 0;
-        $display("  Avant front: in=%b, load=%b, out=%b", in, load, out);
-        @(posedge clk); #1;
-        $display("  Après front: in=%b, load=%b, out=%b", in, load, out);
-        if (out !== 1'b0) begin // Doit rester à 0
-            $display("ECHEC: out devrait rester à 0");
-            $finish;
-        end
-        
-        $display("Phase 5: Séquence alternée");
-        // Test 5: Alternance charge/conserve
-        in = 1; load = 1; @(posedge clk); #1;
-        $display("  Charge 1: out=%b", out);
-        if (out !== 1'b1) begin
-            $display("ECHEC: out devrait être 1");
-            $finish;
-        end
-        
-        in = 0; load = 0; @(posedge clk); #1; // Conserve
-        $display("  Conserve: out=%b", out);
-        if (out !== 1'b1) begin
-            $display("ECHEC: out devrait rester à 1");
-            $finish;
-        end
-        
-        in = 0; load = 1; @(posedge clk); #1; // Charge 0
-        $display("  Charge 0: out=%b", out);
-        if (out !== 1'b0) begin
-            $display("ECHEC: out devrait être 0");
-            $finish;
-        end
-        
+
+        $display("1-bit Register with Load Control Test");
+        $display("+-------+-------+-------+----------+");
+        $display("|  in   | load  |  out  | Operation|");
+        $display("+-------+-------+-------+----------+");
+
+        // Initialize
+        data_in = LOGIC_L;
+        load_enable = LOGIC_L;
+        #2; // Stabilization
+
+        // Test 1: Load HIGH value
+        bit_load_check(LOGIC_H, LOGIC_H, LOGIC_H);
+
+        // Test 2: Memory behavior - input changes but load=0
+        bit_memory_check(LOGIC_L, LOGIC_H); // Should maintain HIGH
+
+        // Test 3: Load LOW value
+        bit_load_check(LOGIC_L, LOGIC_H, LOGIC_L);
+
+        // Test 4: Memory behavior - input changes but load=0
+        bit_memory_check(LOGIC_H, LOGIC_L); // Should maintain LOW
+
+        // Test 5: Load sequence - alternating operations
+        bit_load_check(LOGIC_H, LOGIC_H, LOGIC_H);  // Load HIGH
+        bit_memory_check(LOGIC_L, LOGIC_H);         // Memory HIGH
+        bit_load_check(LOGIC_L, LOGIC_H, LOGIC_L);  // Load LOW
+
+        $display("+-------+-------+-------+----------+");
+
         $display("");
-        $display("SUCCES: Tous les tests Bit register passés !");
-        $display("Le registre 1-bit avec load fonctionne correctement.");
-        $display("");
-        $display("🎉 REGISTRE 1-BIT COMPLETE !");
-        $display("Prêt pour le registre 16-bits !");
-        
+
+        $display("SUCCESS: All tests passed!");
+        $display("The 1-bit register with load control is fully functional.");
         #10;
         $finish;
     end
-    
+
 endmodule
