@@ -47,8 +47,8 @@ module dmux_tb;
         $display("| inp | sel | a_e | b_e |  a  |  b  |");
         $display("+-----+-----+-----+-----+-----+-----+");
         dmux_check(LOGIC_L, LOGIC_L, LOGIC_L, LOGIC_L); // in=0,sel=0 -> a=0,b=0
-        dmux_check(LOGIC_H, LOGIC_L, LOGIC_H, LOGIC_L); // in=1,sel=0 -> a=1,b=0 (route to a)
         dmux_check(LOGIC_L, LOGIC_H, LOGIC_L, LOGIC_L); // in=0,sel=1 -> a=0,b=0  
+        dmux_check(LOGIC_H, LOGIC_L, LOGIC_H, LOGIC_L); // in=1,sel=0 -> a=1,b=0 (route to a)
         dmux_check(LOGIC_H, LOGIC_H, LOGIC_L, LOGIC_H); // in=1,sel=1 -> a=0,b=1 (route to b)
         $display("+-----+-----+-----+-----+-----+-----+");
 
