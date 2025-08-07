@@ -20,30 +20,47 @@ class DependencyResolver:
         self.dependencies = defaultdict(set)  # module -> set of dependencies
         self._scan_modules()
     
+    def _remove_comments(self, content):
+        """Remove single-line and multi-line comments from Verilog content"""
+        # Remove single-line comments (// comment)
+        content = re.sub(r'//.*?\n', '\n', content)
+        # Remove multi-line comments (/* comment */)
+        content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+        return content
+    
     def _scan_modules(self):
         """Scan all .v files and build module index"""
         for vfile in self.src_dir.rglob("*.v"):
             with open(vfile, 'r') as f:
                 content = f.read()
                 
+                # Remove comments before parsing
+                clean_content = self._remove_comments(content)
+                
                 # Find module declarations
                 module_pattern = r'module\s+(\w+)\s*[\(#]'
-                modules = re.findall(module_pattern, content)
+                modules = re.findall(module_pattern, clean_content)
                 
                 for module in modules:
                     self.module_files[module] = vfile
                     
                     # Find instantiations (dependencies)
-                    # Patterns: module_name instance_name(...) or module_name #(...) instance_name(...)
-                    inst_pattern = r'(\w+)\s+(?:#\([^)]*\)\s+)?(\w+)\s*\('
-                    instantiations = re.findall(inst_pattern, content)
+                    # More precise pattern: module_name instance_name(...) or module_name #(...) instance_name(...)
+                    # Must be followed by parentheses and preceded by whitespace/newline
+                    inst_pattern = r'(?:^|\s|;)+(\w+)\s+(?:#\([^)]*\)\s+)?(\w+)\s*\('
+                    instantiations = re.findall(inst_pattern, clean_content, re.MULTILINE)
                     
                     for inst_module, inst_name in instantiations:
-                        # Filter out keywords and primitives
+                        # Filter out Verilog keywords, primitives, and common false positives
                         if inst_module not in ['module', 'endmodule', 'input', 'output', 
                                               'wire', 'reg', 'assign', 'always', 'initial',
-                                              'begin', 'end', 'if', 'else', 'case']:
-                            self.dependencies[module].add(inst_module)
+                                              'begin', 'end', 'if', 'else', 'case', 'default',
+                                              'for', 'while', 'repeat', 'forever', 'task', 'function',
+                                              'integer', 'real', 'time', 'parameter', 'localparam',
+                                              'generate', 'genvar', 'endgenerate', 'posedge', 'negedge']:
+                            # Additional validation: instance name should be a valid identifier
+                            if re.match(r'^\w+$', inst_name) and inst_module != inst_name:
+                                self.dependencies[module].add(inst_module)
     
     def get_dependencies(self, module_name):
         """Get all dependencies for a module (recursive)"""
@@ -73,16 +90,21 @@ class DependencyResolver:
         with open(test_file, 'r') as f:
             content = f.read()
         
+        # Remove comments before parsing
+        clean_content = self._remove_comments(content)
+        
         # Find all module instantiations in the testbench
-        inst_pattern = r'(\w+)\s+(?:#\([^)]*\)\s+)?(\w+)\s*\('
-        instantiations = re.findall(inst_pattern, content)
+        inst_pattern = r'(?:^|\s|;)+(\w+)\s+(?:#\([^)]*\)\s+)?(\w+)\s*\('
+        instantiations = re.findall(inst_pattern, clean_content, re.MULTILINE)
         
         all_sources = []
         seen = set()
         
-        for module, _ in instantiations:
-            if module not in ['module', 'endmodule', 'input', 'output', 
-                             'wire', 'reg', 'assign', 'always', 'initial']:
+        for module, inst_name in instantiations:
+            # Filter out keywords and validate
+            if (module not in ['module', 'endmodule', 'input', 'output', 
+                              'wire', 'reg', 'assign', 'always', 'initial', 'task', 'function'] and
+                re.match(r'^\w+$', inst_name) and module != inst_name):
                 deps = self.get_dependencies(module)
                 for dep in deps:
                     if dep not in seen:
