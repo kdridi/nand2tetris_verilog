@@ -1,65 +1,45 @@
-// src/computer/computer.v – Ordinateur Hack « tout‑en‑un » (CPU + ROM + RAM64)
-// ------------------------------------------------------------------
-// * ROM  : 32 K mots max (initialisée depuis "prog.hex")
-// * RAM  : 64 mots (16 bits) pour les données (suffit à la démo)
-// ------------------------------------------------------------------
-// Ports :
-//   clk, reset : horloge et remise à zéro
-//   pc_out     : adresse d’instruction courante (debug facultatif)
-//
-// Pour l’utiliser :
-//   1. Place ton programme assembleur compilé dans un fichier HEX :
-//        $ cat prog.hex
-//        000A
-//        EC10
-//        ...
-//   2. Compile : iverilog ... computer.v <modules>.v
-//   3. La ROM se charge automatiquement au démarrage.
-//
+// src/computer/computer.v - Complete Nand2Tetris Computer System
+// Part of Nand2Tetris Verilog Implementation
+// Function: Complete computer system (CPU + ROM + RAM) that executes Hack assembly programs
+// Architecture: Harvard architecture with separate instruction ROM and data RAM
+
 `timescale 1ns / 1ps
 
 module computer (
-    input  wire clk,
-    input  wire reset,
-    output wire [15:0] pc_out          // signal de debug (facultatif)
+    input  wire        clk,     // Clock signal
+    input  wire        reset,   // Reset signal (synchronous)
+    output wire [15:0] pc_out   // Program counter output (for debugging)
 );
-    // ------------------------------------------------------------------
-    // 1) Liaisons internes CPU <-> mémoire
-    // ------------------------------------------------------------------
-    wire [15:0] instruction;
-    wire [15:0] inM, outM;
-    wire [14:0] addressM;
-    wire        writeM;
-    wire [15:0] pc;
 
-    // ------------------------------------------------------------------
-    // 2) Mémoire de programme (ROM) – 32 K mots maximum
-    // ------------------------------------------------------------------
-    reg [15:0] rom [0:32767];         // 32K × 16 bits
+    // Internal CPU-memory interface signals
+    wire [15:0] instruction;    // Current instruction from ROM
+    wire [15:0] inM, outM;      // Data memory interface
+    wire [14:0] addressM;       // Memory address from CPU
+    wire        writeM;         // Memory write enable
+    wire [15:0] pc;             // Program counter
+
+    // Instruction Memory (ROM): 32K × 16-bit program storage
+    // Loads program from "prog.hex" file at simulation startup
+    reg [15:0] rom [0:32767];
 
     initial begin
-        // Charge "prog.hex" (fichier texte : 1 mot 16 bits/ligne, hex).
-        // En l’absence de fichier, la ROM vaudra 0x0000 partout.
         $readmemh("prog.hex", rom);
     end
 
-    assign instruction = rom[pc];     // lecture combinatoire
+    assign instruction = rom[pc];
 
-    // ------------------------------------------------------------------
-    // 3) Mémoire de données (RAM64) – 64 mots × 16 bits
-    // ------------------------------------------------------------------
-    ram64 data_ram (
-        .in      (outM),
-        .address (addressM[5:0]),     // on n’utilise que 6 bits
-        .load    (writeM),
-        .clk     (clk),
-        .out     (inM)
+    // Data Memory (RAM64): 64 × 16-bit data storage
+    // Uses only lower 6 bits of addressM for 64-word addressing
+    ram64 data_memory (
+        .in     (outM),
+        .address(addressM[5:0]),
+        .load   (writeM),
+        .clk    (clk),
+        .out    (inM)
     );
 
-    // ------------------------------------------------------------------
-    // 4) Processeur
-    // ------------------------------------------------------------------
-    cpu cpu_core (
+    // Central Processing Unit
+    cpu processor (
         .clk        (clk),
         .reset      (reset),
         .inM        (inM),
@@ -70,5 +50,6 @@ module computer (
         .pc         (pc)
     );
 
-    assign pc_out = pc;               // exposé pour la trace/DEBUG
+    assign pc_out = pc;
+
 endmodule

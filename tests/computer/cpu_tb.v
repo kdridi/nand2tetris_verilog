@@ -1,128 +1,136 @@
-// tests/computer/cpu_tb.v - Cycle TDD 3 pour le CPU
-// Test : saut inconditionnel avec 0;JMP
-
+// tests/computer/cpu_tb.v - Unit Test for Nand2Tetris CPU Implementation
 `timescale 1ns / 1ps
 
 module cpu_tb;
-    // Signaux de test
-    reg clk, reset;
-    reg [15:0] inM, instruction;
-    wire [15:0] outM, pc;
-    wire [14:0] addressM;
-    wire writeM;
+
+    // Test signals
+    reg clock_signal, reset_signal;
+    reg [15:0] data_from_memory, current_instruction;
+    wire [15:0] data_to_memory, program_counter;
+    wire [14:0] memory_address;
+    wire memory_write_enable;
     
-    // Instance du module à tester
+    // Instance of the module to be tested
     cpu uut (
-        .clk(clk),
-        .reset(reset),
-        .inM(inM),
-        .instruction(instruction),
-        .outM(outM),
-        .addressM(addressM),
-        .writeM(writeM),
-        .pc(pc)
+        .clk(clock_signal),
+        .reset(reset_signal),
+        .inM(data_from_memory),
+        .instruction(current_instruction),
+        .outM(data_to_memory),
+        .addressM(memory_address),
+        .writeM(memory_write_enable),
+        .pc(program_counter)
     );
+
+    // Constants for test values
+    localparam LOGIC_L = 0; // Low logic level
+    localparam LOGIC_H = 1; // High logic level
     
-    // Génération d'horloge
+    // Clock generation
     initial begin
-        clk = 0;
-        forever #5 clk = ~clk; // Période de 10ns
+        clock_signal = 0;
+        forever #5 clock_signal = ~clock_signal; // 10ns period (100MHz)
     end
+
+    // Task to execute instruction and check results
+    task cpu_execute_instruction;
+        input [15:0] instruction;
+        input [15:0] expected_pc;
+        input [14:0] expected_address;
+        input expected_write;
+        input [120:0] test_name;
+        begin
+            current_instruction = instruction;
+            @(posedge clock_signal); 
+            #1; // Propagation delay
+            
+            $display("| 0x%04X | 0x%04X | 0x%04X |   %b     | %s |", 
+                     instruction, program_counter, memory_address, memory_write_enable, test_name);
+
+            if (program_counter !== expected_pc) begin
+                $display("FAILURE: PC expected 0x%04X, obtained 0x%04X", expected_pc, program_counter);
+                $finish;
+            end
+            
+            if (memory_address !== expected_address) begin
+                $display("FAILURE: Address expected 0x%04X, obtained 0x%04X", expected_address, memory_address);
+                $finish;
+            end
+            
+            if (memory_write_enable !== expected_write) begin
+                $display("FAILURE: WriteM expected %b, obtained %b", expected_write, memory_write_enable);
+                $finish;
+            end
+        end
+    endtask
     
-    // Test cycle 3
+    // Test CPU functionality with jump instructions
     initial begin
         $dumpfile("cpu_tb.vcd");
         $dumpvars(0, cpu_tb);
+
+        $display("Nand2Tetris CPU with Jump Instructions Test");
+        $display("+--------+--------+--------+---------+------------------+");
+        $display("| Instr  |   PC   |  Addr  | WriteM  |    Test          |");
+        $display("+--------+--------+--------+---------+------------------+");
+
+        // Initialize
+        reset_signal = LOGIC_H;
+        data_from_memory = 16'h0000;
+        current_instruction = 16'h0000;
         
-        $display("Test CPU Cycle 3 - Saut inconditionnel (0;JMP)");
-        $display("===============================================");
+        // Reset CPU
+        @(posedge clock_signal); 
+        #1;
+        $display("| ------ | 0x%04X | 0x%04X |   %b     |            Reset |", 
+                 program_counter, memory_address, memory_write_enable);
         
-        // Initialisation
-        reset = 1;
-        inM = 16'h0000;
-        instruction = 16'h0000;
-        
-        // Reset du CPU
-        @(posedge clk); #1;
-        $display("Phase 1: Reset du CPU");
-        $display("  PC après reset: 0x%04X", pc);
-        reset = 0;
-        
-        // Étape 1 : Charger @100 dans le registre A (adresse de saut)
-        $display("Phase 2: Charger @100 (adresse de destination)");
-        instruction = 16'h0064; // @100
-        @(posedge clk); #1;
-        $display("  Après @100: PC=0x%04X, A=0x%04X", pc, addressM);
-        
-        if (pc !== 16'h0001 || addressM !== 15'd100) begin
-            $display("ECHEC: @100 mal exécutée");
+        if (program_counter !== 16'h0000) begin
+            $display("FAILURE: PC should be 0x0000 after reset");
             $finish;
         end
         
-        // Étape 2 : Quelques instructions normales pour vérifier l'incrément
-        $display("Phase 3: Instructions normales pour avancer le PC");
-        instruction = 16'h0001; // @1
-        @(posedge clk); #1;      // PC = 2
-        instruction = 16'h0002; // @2  
-        @(posedge clk); #1;      // PC = 3
-        $display("  PC après 2 instructions: 0x%04X", pc);
+        reset_signal = LOGIC_L;
+
+        // Test 1: A-instruction - Load immediate value into A register
+        cpu_execute_instruction(16'h0064, 16'h0001, 15'd100, LOGIC_L, "A-instruction");
         
-        if (pc !== 16'h0003) begin
-            $display("ECHEC: PC devrait être 0x0003");
-            $finish;
-        end
+        // Test 2: Another A-instruction to advance PC
+        cpu_execute_instruction(16'h0001, 16'h0002, 15'd1, LOGIC_L, "A-instruction");
         
-        // Étape 3 : Recharger @100 dans A
-        $display("Phase 4: Recharger @100 avant le saut");
-        instruction = 16'h0064; // @100
-        @(posedge clk); #1;      // PC = 4
-        $display("  Avant saut: PC=0x%04X, A=0x%04X", pc, addressM);
+        // Test 3: Another A-instruction to advance PC
+        cpu_execute_instruction(16'h0002, 16'h0003, 15'd2, LOGIC_L, "A-instruction");
         
-        // Étape 4 : Exécuter 0;JMP (saut inconditionnel vers A)
-        $display("Phase 5: Exécution de 0;JMP");
-        // 0;JMP en binaire Nand2Tetris:
-        // Bit 15=1 (C-instruction), a=0, cccccc=101010 (constante 0), ddd=000 (pas de dest), jjj=111 (JMP)
-        // Format: 1 1 1 a c1 c2 c3 c4 c5 c6 d1 d2 d3 j1 j2 j3
-        // 0;JMP:  1 1 1 0 1  0  1  0  1  0  0  0  0  1  1  1
-        instruction = 16'hEA87; // 1110 1010 1000 0111
+        // Test 4: Reload target address before jump
+        cpu_execute_instruction(16'h0064, 16'h0004, 15'd100, LOGIC_L, "A-instruction");
         
-        @(posedge clk); #1;
-        $display("  Après 0;JMP: PC=0x%04X (devrait être 100)", pc);
+        // Test 5: Unconditional jump (0;JMP)
+        // Binary encoding: 1110101000000111 (0xEA07)
+        // Format: 111a cccccc ddd jjj
+        // 0;JMP:  1110 101010 000 111
+        cpu_execute_instruction(16'hEA07, 16'd100, 15'd100, LOGIC_L, "Jump (0;JMP)");
         
-        // Vérifications
-        if (pc !== 16'd100) begin
-            $display("ECHEC: PC devrait être 100 après 0;JMP, trouvé %d", pc);
-            $finish;
-        end
+        // Test 6: Continue execution from new address
+        cpu_execute_instruction(16'h0005, 16'd101, 15'd5, LOGIC_L, "A-instruction");
+
+        // Test 7: C-instruction with memory write (M=1)
+        // Binary encoding: 1110111111001000 (0xEFC8)
+        // Format: 111a cccccc ddd jjj
+        // M=1:    1110 111111 001 000 (a=0, comp=111111 for constant 1, dest=001 for M)
+        cpu_execute_instruction(16'hEFC8, 16'd102, 15'd5, LOGIC_H, "Memory write");
+
+        $display("+--------+--------+--------+---------+------------------+");
         
-        if (writeM !== 1'b0) begin
-            $display("ECHEC: writeM devrait être 0 pour 0;JMP");
-            $finish;
-        end
-        
-        // Étape 5 : Vérifier que l'exécution continue normalement depuis la nouvelle adresse
-        $display("Phase 6: Vérifier l'exécution depuis la nouvelle adresse");
-        instruction = 16'h0005; // @5
-        @(posedge clk); #1;      // PC devrait passer de 100 à 101
-        
-        $display("  Après @5 depuis nouvelle position: PC=0x%04X", pc);
-        
-        if (pc !== 16'd101) begin
-            $display("ECHEC: PC devrait être 101 après instruction suivante");
-            $finish;
-        end
-        
-        $display("SUCCES: Test CPU Cycle 3 réussi !");
-        $display("- Saut inconditionnel 0;JMP fonctionne ✓");
-        $display("- PC saute correctement vers l'adresse A ✓");
-        $display("- Exécution continue depuis la nouvelle adresse ✓");
-        $display("- Logique de saut n'interfère pas avec les autres instructions ✓");
         $display("");
-        $display("🎉 CPU AVEC SAUTS OPERATIONNEL !");
-        $display("Notre processeur peut maintenant exécuter des programmes avec des boucles !");
+        $display("SUCCESS: All tests passed!");
+        $display("The CPU correctly executes:");
+        $display("- A-type instructions (immediate load)");
+        $display("- C-type instructions with memory operations");
+        $display("- Jump instructions with proper PC control");
+        $display("- Program counter increment and jump logic");
         
-        #20;
+        #10;
         $finish;
     end
-    
+
 endmodule
