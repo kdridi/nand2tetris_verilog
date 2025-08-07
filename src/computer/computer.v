@@ -28,11 +28,11 @@ module computer (
 
     assign instruction = rom[pc];
 
-    // Data Memory (RAM64): 64 × 16-bit data storage
-    // Uses only lower 6 bits of addressM for 64-word addressing
-    ram64 data_memory (
+    // Complete Memory System: RAM16K + Screen + Keyboard with memory mapping
+    // Implements full Hack computer memory architecture with I/O devices
+    memory data_memory (
         .in     (outM),
-        .address(addressM[5:0]),
+        .address(addressM),
         .load   (writeM),
         .clk    (clk),
         .out    (inM)
