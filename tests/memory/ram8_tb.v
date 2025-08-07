@@ -1,157 +1,140 @@
-// tests/memory/ram8_tb.v - Cycle TDD 2 pour la RAM8
-// Test complet : vérifier toutes les adresses et la non-interférence
-
+// tests/memory/ram8_tb.v - Unit Test for 8-Register RAM with 3-bit Addressing
 `timescale 1ns / 1ps
 
 module ram8_tb;
-    // Signaux de test
-    reg [15:0] in;
-    reg [2:0] address;
-    reg load, clk;
-    wire [15:0] out;
-    
-    // Instance du module à tester
+
+    // Test signals
+    reg [15:0] data_in;
+    reg [2:0] memory_address;
+    reg write_enable, clock_signal;
+    wire [15:0] data_out;
+
+    // Instance of the module to be tested
     ram8 uut (
-        .in(in),
-        .address(address),
-        .load(load),
-        .clk(clk),
-        .out(out)
+        .in(data_in),
+        .address(memory_address),
+        .load(write_enable),
+        .clk(clock_signal),
+        .out(data_out)
     );
-    
-    // Génération d'horloge
+
+    // Constants for test values
+    localparam LOGIC_L = 0; // Low logic level
+    localparam LOGIC_H = 1; // High logic level
+
+    // Clock generation
     initial begin
-        clk = 0;
-        forever #5 clk = ~clk; // Période de 10ns
+        clock_signal = 0;
+        forever #5 clock_signal = ~clock_signal; // 10ns period (100MHz)
     end
-    
-    // Tâche pour test d'écriture/lecture
-    task write_read_test(
-        input [2:0] addr,
-        input [15:0] data,
-        input [47:0] description
-    );
-    begin
-        $display("Test: %s", description);
-        
-        // Écriture
-        address = addr;
-        in = data;
-        load = 1;
-        @(posedge clk); #1;
-        $display("  Écriture: RAM8[%d] ← 0x%04X", addr, data);
-        
-        // Lecture
-        load = 0;
-        #1;
-        $display("  Lecture:  RAM8[%d] → 0x%04X", addr, out);
-        
-        if (out !== data) begin
-            $display("  ECHEC: attendu 0x%04X", data);
-            $finish;
+
+    // Task to test write/read operation
+    task ram8_write_read_check;
+        input [2:0] addr;
+        input [15:0] write_data;
+        input [15:0] expected_read_data;
+        begin
+            // Write operation
+            memory_address = addr;
+            data_in = write_data;
+            write_enable = LOGIC_H;
+            @(posedge clock_signal); // Write on clock edge
+            #1; // Propagation delay
+            
+            // Read operation
+            write_enable = LOGIC_L;
+            #1;
+            $display("| 0x%04X |    %d     | 0x%04X |  Write+Read  |", write_data, addr, data_out);
+
+            if (data_out !== expected_read_data) begin
+                $display("FAILURE: RAM8 write/read at address %d expected 0x%04X, obtained 0x%04X", 
+                         addr, expected_read_data, data_out);
+                $finish;
+            end
         end
-        $display("  ✓ SUCCES");
-        $display("");
-    end
     endtask
-    
-    // Test complet
+
+    // Task to test read-only operation
+    task ram8_read_check;
+        input [2:0] addr;
+        input [15:0] expected_data;
+        begin
+            memory_address = addr;
+            write_enable = LOGIC_L;
+            #1;
+            $display("| ------ |    %d     | 0x%04X |   Read Only  |", addr, data_out);
+
+            if (data_out !== expected_data) begin
+                $display("FAILURE: RAM8 read at address %d expected 0x%04X, obtained 0x%04X", 
+                         addr, expected_data, data_out);
+                $finish;
+            end
+        end
+    endtask
+
+    // Test RAM8 functionality
     initial begin
         $dumpfile("ram8_tb.vcd");
         $dumpvars(0, ram8_tb);
-        
-        $display("Test complet de la RAM8");
-        $display("=======================");
+
+        $display("8-Register RAM with 3-bit Addressing Test");
+        $display("+--------+----------+--------+--------------+");
+        $display("|   in   | address  |  out   |  Operation   |");
+        $display("+--------+----------+--------+--------------+");
+
+        // Initialize
+        data_in = 16'h0000;
+        memory_address = 3'd0;
+        write_enable = LOGIC_L;
+        #2; // Stabilization
+
+        // Test 1: Write/read to each address
+        ram8_write_read_check(3'd0, 16'h1111, 16'h1111);
+        ram8_write_read_check(3'd1, 16'h2222, 16'h2222);
+        ram8_write_read_check(3'd2, 16'h3333, 16'h3333);
+        ram8_write_read_check(3'd3, 16'h4444, 16'h4444);
+        ram8_write_read_check(3'd4, 16'h5555, 16'h5555);
+        ram8_write_read_check(3'd5, 16'h6666, 16'h6666);
+        ram8_write_read_check(3'd6, 16'h7777, 16'h7777);
+        ram8_write_read_check(3'd7, 16'h8888, 16'h8888);
+
+        // Test 2: Verify data integrity (no interference)
+        ram8_read_check(3'd0, 16'h1111);
+        ram8_read_check(3'd3, 16'h4444);
+        ram8_read_check(3'd7, 16'h8888);
+
+        // Test 3: Overwrite test
+        ram8_write_read_check(3'd2, 16'hABCD, 16'hABCD);
+
+        // Test 4: Verify other addresses unchanged
+        ram8_read_check(3'd1, 16'h2222);
+        ram8_read_check(3'd2, 16'hABCD);
+        ram8_read_check(3'd3, 16'h4444);
+
+        // Test 5: Boundary value patterns
+        ram8_write_read_check(3'd0, 16'h0000, 16'h0000);
+        ram8_write_read_check(3'd7, 16'hFFFF, 16'hFFFF);
+        ram8_write_read_check(3'd4, 16'hAAAA, 16'hAAAA);
+        ram8_write_read_check(3'd5, 16'h5555, 16'h5555);
+
+        // Test 6: Read-only all addresses
+        ram8_read_check(3'd0, 16'h0000);
+        ram8_read_check(3'd1, 16'h2222);
+        ram8_read_check(3'd2, 16'hABCD);
+        ram8_read_check(3'd3, 16'h4444);
+        ram8_read_check(3'd4, 16'hAAAA);
+        ram8_read_check(3'd5, 16'h5555);
+        ram8_read_check(3'd6, 16'h7777);
+        ram8_read_check(3'd7, 16'hFFFF);
+
+        $display("+--------+----------+--------+--------------+");
+
         $display("");
-        
-        // Initialisation
-        in = 16'h0000;
-        address = 3'b000;
-        load = 0;
-        #2;
-        
-        $display("Phase 1: Test de chaque adresse individuellement");
-        // Test de toutes les adresses
-        write_read_test(3'd0, 16'h1111, "Adresse 0");
-        write_read_test(3'd1, 16'h2222, "Adresse 1");
-        write_read_test(3'd2, 16'h3333, "Adresse 2");
-        write_read_test(3'd3, 16'h4444, "Adresse 3");
-        write_read_test(3'd4, 16'h5555, "Adresse 4");
-        write_read_test(3'd5, 16'h6666, "Adresse 5");
-        write_read_test(3'd6, 16'h7777, "Adresse 6");
-        write_read_test(3'd7, 16'h8888, "Adresse 7");
-        
-        $display("Phase 2: Vérification de la non-interférence");
-        // Vérifier que toutes les valeurs sont toujours présentes
-        load = 0; // Mode lecture seule
-        
-        address = 3'd0; #1;
-        $display("Vérif RAM8[0] = 0x%04X (attendu 0x1111)", out);
-        if (out !== 16'h1111) begin
-            $display("ECHEC: interférence détectée à l'adresse 0");
-            $finish;
-        end
-        
-        address = 3'd3; #1;
-        $display("Vérif RAM8[3] = 0x%04X (attendu 0x4444)", out);
-        if (out !== 16'h4444) begin
-            $display("ECHEC: interférence détectée à l'adresse 3");
-            $finish;
-        end
-        
-        address = 3'd7; #1;
-        $display("Vérif RAM8[7] = 0x%04X (attendu 0x8888)", out);
-        if (out !== 16'h8888) begin
-            $display("ECHEC: interférence détectée à l'adresse 7");
-            $finish;
-        end
-        
-        $display("Phase 3: Test de réécriture");
-        // Réécrire à l'adresse 2
-        address = 3'd2;
-        in = 16'hABCD;
-        load = 1;
-        @(posedge clk); #1;
-        load = 0; #1;
-        
-        $display("Réécriture RAM8[2]: 0x3333 → 0x%04X", out);
-        if (out !== 16'hABCD) begin
-            $display("ECHEC: réécriture échouée");
-            $finish;
-        end
-        
-        // Vérifier que les autres adresses n'ont pas changé
-        address = 3'd1; #1;
-        if (out !== 16'h2222) begin
-            $display("ECHEC: réécriture a affecté l'adresse 1");
-            $finish;
-        end
-        
-        address = 3'd3; #1;
-        if (out !== 16'h4444) begin
-            $display("ECHEC: réécriture a affecté l'adresse 3");
-            $finish;
-        end
-        
-        $display("Phase 4: Test avec patterns particuliers");
-        // Patterns extrêmes
-        write_read_test(3'd0, 16'h0000, "Pattern 0x0000");
-        write_read_test(3'd1, 16'hFFFF, "Pattern 0xFFFF");
-        write_read_test(3'd2, 16'hAAAA, "Pattern 0xAAAA");
-        write_read_test(3'd3, 16'h5555, "Pattern 0x5555");
-        
-        $display("SUCCES: Tous les tests RAM8 passés !");
-        $display("La RAM8 fonctionne parfaitement.");
-        $display("- 8 registres indépendants ✓");
-        $display("- Adressage correct ✓");
-        $display("- Pas d'interférence ✓");
-        $display("- Réécriture fonctionnelle ✓");
-        $display("");
-        $display("🎉 RAM8 COMPLETE !");
-        $display("Fondation de la hiérarchie mémoire opérationnelle !");
-        
+
+        $display("SUCCESS: All tests passed!");
+        $display("The 8-register RAM with 3-bit addressing is fully functional.");
         #10;
         $finish;
     end
-    
+
 endmodule
